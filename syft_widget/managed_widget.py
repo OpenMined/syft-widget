@@ -89,28 +89,34 @@ class ManagedWidget(SyftWidget):
         # First try to kill any existing process on this port
         self._kill_process_on_port(self.thread_server_port)
         
-        # Now check if port is free
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            sock.bind(('', self.thread_server_port))
-            sock.close()
-        except OSError:
-            print(f"Port {self.thread_server_port} is still in use after kill attempt")
+        # Try to find an available port, starting with the configured one
+        available_port = None
+        for port_offset in range(10):  # Try up to 10 ports
+            test_port = self.thread_server_port + port_offset
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                sock.bind(('', test_port))
+                sock.close()
+                available_port = test_port
+                break
+            except OSError:
+                if port_offset == 0:
+                    print(f"Port {test_port} is still in use after kill attempt")
+                continue
+        
+        if available_port is None:
+            print(f"Could not find available port in range {self.thread_server_port}-{self.thread_server_port + 9}")
             return
+        
+        # Update our port and server URL
+        if available_port != self.thread_server_port:
+            print(f"Using alternate port {available_port} instead of {self.thread_server_port}")
+        self.thread_server_port = available_port
+        self.server_url = f"http://localhost:{self.thread_server_port}"
             
         def delayed_start():
             print(f"Thread server starting on port {self.thread_server_port}...")
             time.sleep(0.5)  # Much shorter delay for faster recovery
-            
-            # Double-check port is still free before starting
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            try:
-                sock.bind(('', self.thread_server_port))
-                sock.close()
-            except OSError:
-                print(f"Port {self.thread_server_port} became occupied while waiting")
-                self._kill_process_on_port(self.thread_server_port)
-                time.sleep(0.5)
             
             try:
                 self.thread_server = run_server_in_thread(port=self.thread_server_port, delay=0)
@@ -199,11 +205,10 @@ class ManagedWidget(SyftWidget):
         
         def on_syftbox_lost():
             """Called when SyftBox app becomes unavailable"""
-            print(f"SyftBox app lost, falling back to thread server on port {self.thread_server_port}")
+            print(f"SyftBox app lost, falling back to thread server")
             self.current_stage = "checkpoint"  # First go to checkpoint
-            self.server_url = f"http://localhost:{self.thread_server_port}"
             
-            # Restart thread server (which will transition to "thread" stage after 2 seconds)
+            # Restart thread server (which will update self.server_url with the actual port)
             self._start_thread_server()
         
         # Start standard monitoring first
@@ -402,6 +407,7 @@ class ManagedWidget(SyftWidget):
                 let currentStage = 'checkpoint';
                 let isLive = false;
                 let threadServerUrl = '{self.server_url}';
+                let originalThreadPort = {self.thread_server_port};
                 let syftboxServerUrl = null;
                 let lastSuccessfulData = {initial_data}; // Keep track of last good data
                 const endpoint = '/time';
@@ -438,6 +444,24 @@ class ManagedWidget(SyftWidget):
                     }} catch (e) {{
                         return false;
                     }}
+                }}
+                
+                async function findThreadServer() {{
+                    // Try the current URL first
+                    if (await checkServer(threadServerUrl)) {{
+                        return threadServerUrl;
+                    }}
+                    
+                    // If that fails, try a range of ports starting from the original
+                    for (let offset = 0; offset < 10; offset++) {{
+                        const testUrl = `http://localhost:${{originalThreadPort + offset}}`;
+                        if (await checkServer(testUrl)) {{
+                            console.log(`Found thread server on alternate port: ${{testUrl}}`);
+                            return testUrl;
+                        }}
+                    }}
+                    
+                    return null;
                 }}
                 
                 async function getData(url) {{
@@ -530,10 +554,13 @@ class ManagedWidget(SyftWidget):
                     
                     // If SyftBox not available, check thread server
                     if (!syftboxAvailable) {{
-                        threadAvailable = await checkServer(threadServerUrl);
-                        if (threadAvailable) {{
+                        const foundThreadUrl = await findThreadServer();
+                        if (foundThreadUrl) {{
+                            threadServerUrl = foundThreadUrl;
+                            stages.thread.url = threadServerUrl;
                             data = await getData(threadServerUrl);
                             if (data) {{
+                                threadAvailable = true;
                                 newStage = 'thread';
                             }}
                         }}
