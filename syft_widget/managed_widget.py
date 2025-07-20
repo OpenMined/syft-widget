@@ -1,5 +1,6 @@
 import time
 import threading
+import random
 from typing import Optional, Dict, Callable, Any
 import ipywidgets as widgets
 import uuid
@@ -98,8 +99,8 @@ class ManagedWidget(SyftWidget):
             return
             
         def delayed_start():
-            print(f"Thread server will start in 2 seconds on port {self.thread_server_port}...")
-            time.sleep(2)
+            print(f"Thread server starting on port {self.thread_server_port}...")
+            time.sleep(0.5)  # Much shorter delay for faster recovery
             
             # Double-check port is still free before starting
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -187,8 +188,14 @@ class ManagedWidget(SyftWidget):
             self.server_url = syftbox_url
             self.current_stage = "syftbox"
             
-            # Stop the thread server since SyftBox is available
-            self._stop_thread_server()
+            # Wait a bit before stopping thread server to ensure smooth transition
+            def delayed_stop():
+                time.sleep(2)  # Give frontend time to switch
+                print("Stopping thread server after transition delay...")
+                self._stop_thread_server()
+            
+            stop_thread = threading.Thread(target=delayed_stop, daemon=True)
+            stop_thread.start()
         
         def on_syftbox_lost():
             """Called when SyftBox app becomes unavailable"""
@@ -213,7 +220,7 @@ class ManagedWidget(SyftWidget):
     def _continuous_monitoring(self, on_ready, on_lost):
         """Continuously monitor SyftBox availability and manage thread server"""
         # Give initial monitoring time to complete
-        time.sleep(3)
+        time.sleep(1)
         
         # Check initial state
         if self.current_stage == "syftbox":
@@ -224,6 +231,7 @@ class ManagedWidget(SyftWidget):
         last_syftbox_url = None
         consecutive_failures = 0
         thread_check_counter = 0
+        next_filesystem_check = 0
         
         while not self._stop_monitoring:
             try:
@@ -243,8 +251,8 @@ class ManagedWidget(SyftWidget):
                         # Server check failed
                         if self.current_stage == "syftbox":
                             consecutive_failures += 1
-                            # Only consider it lost after 3 consecutive failures
-                            if consecutive_failures >= 3:
+                            # Only consider it lost after 2 consecutive failures (faster detection)
+                            if consecutive_failures >= 2:
                                 print(f"SyftBox server lost after {consecutive_failures} failed checks!")
                                 last_syftbox_url = None
                                 consecutive_failures = 0
@@ -253,12 +261,33 @@ class ManagedWidget(SyftWidget):
                 # Also check if we're in checkpoint mode and need a thread server
                 if self.current_stage == "checkpoint":
                     thread_check_counter += 1
-                    if thread_check_counter >= 2:  # After 6 seconds in checkpoint
+                    if thread_check_counter >= 2:  # After 3 seconds in checkpoint
                         print("Still in checkpoint mode, checking if thread server needed")
                         self._check_and_start_thread_server()
                         thread_check_counter = 0
                 
-                time.sleep(3)  # Check every 3 seconds
+                # If we're on thread server and SyftBox not available, periodically check filesystem
+                if self.current_stage == "thread" and time.time() >= next_filesystem_check:
+                    if not is_available and self.syftbox_manager:
+                        print("Thread server active, checking if SyftBox app needs to be re-cloned...")
+                        
+                        # Check if app still exists
+                        if not self.syftbox_manager.check_app_exists():
+                            print("SyftBox app missing! Re-cloning...")
+                            if self.syftbox_manager.clone_app():
+                                print("App re-cloned successfully, waiting for SyftBox to start it...")
+                            else:
+                                print("Failed to re-clone app")
+                        else:
+                            print("App exists but server not responding")
+                        
+                        # Schedule next check with random backoff
+                        import random
+                        backoff = random.randint(30, 90)
+                        next_filesystem_check = time.time() + backoff
+                        print(f"Next filesystem check in {backoff} seconds")
+                
+                time.sleep(1.5)  # Check every 1.5 seconds for faster response
             except Exception as e:
                 print(f"Error in monitoring: {e}")
                 time.sleep(5)
@@ -447,6 +476,8 @@ class ManagedWidget(SyftWidget):
                     return null;
                 }}
                 
+                let syftboxReadyCount = 0;
+                
                 async function updateDisplay() {{
                     let data = null;
                     let newStage = currentStage;
@@ -460,17 +491,40 @@ class ManagedWidget(SyftWidget):
                     let threadAvailable = false;
                     
                     // Check both servers
-                    if (syftboxServerUrl) {{
+                    if (syftboxServerUrl && currentStage !== 'syftbox') {{
+                        // For SyftBox, require both health check AND successful data fetch
+                        const healthOk = await checkServer(syftboxServerUrl);
+                        if (healthOk) {{
+                            const testData = await getData(syftboxServerUrl);
+                            if (testData && testData.timestamp) {{
+                                syftboxReadyCount++;
+                                // Require 2 consecutive successful checks before switching
+                                if (syftboxReadyCount >= 2) {{
+                                    syftboxAvailable = true;
+                                    data = testData;
+                                    newStage = 'syftbox';
+                                    stages.syftbox.url = syftboxServerUrl;
+                                    console.log('SyftBox server verified ready after', syftboxReadyCount, 'checks');
+                                }}
+                            }} else {{
+                                syftboxReadyCount = 0;
+                            }}
+                        }} else {{
+                            syftboxReadyCount = 0;
+                            syftboxServerUrl = null;
+                        }}
+                    }} else if (syftboxServerUrl && currentStage === 'syftbox') {{
+                        // Already on SyftBox, just check if still available
                         syftboxAvailable = await checkServer(syftboxServerUrl);
                         if (syftboxAvailable) {{
                             data = await getData(syftboxServerUrl);
-                            if (data) {{
-                                newStage = 'syftbox';
-                                stages.syftbox.url = syftboxServerUrl;
+                            if (!data) {{
+                                syftboxAvailable = false;
                             }}
-                        }} else {{
-                            // SyftBox not available, clear URL
+                        }}
+                        if (!syftboxAvailable) {{
                             syftboxServerUrl = null;
+                            syftboxReadyCount = 0;
                         }}
                     }}
                     

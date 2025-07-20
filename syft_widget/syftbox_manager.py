@@ -131,7 +131,7 @@ class SyftBoxManager:
             
         if self.syftbox_server_url:
             try:
-                response = requests.get(f"{self.syftbox_server_url}/health", timeout=2)
+                response = requests.get(f"{self.syftbox_server_url}/health", timeout=1)
                 return response.status_code == 200
             except requests.exceptions.RequestException:
                 # Connection failed, but don't clear the URL yet
