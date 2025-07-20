@@ -73,16 +73,7 @@ class ManagedWidget(SyftWidget):
         import subprocess
         
         # First try to kill any existing process on this port
-        try:
-            result = subprocess.run(['lsof', '-t', f'-i:{self.thread_server_port}'], 
-                                  capture_output=True, text=True)
-            if result.stdout.strip():
-                pid = result.stdout.strip()
-                print(f"Killing existing process {pid} on port {self.thread_server_port}")
-                subprocess.run(['kill', '-9', pid])
-                time.sleep(0.5)  # Give it time to release the port
-        except Exception as e:
-            print(f"Could not check/kill existing process: {e}")
+        self._kill_process_on_port(self.thread_server_port)
         
         # Now check if port is free
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -96,10 +87,24 @@ class ManagedWidget(SyftWidget):
         def delayed_start():
             print(f"Thread server will start in 2 seconds on port {self.thread_server_port}...")
             time.sleep(2)
+            
+            # Double-check port is still free before starting
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                sock.bind(('', self.thread_server_port))
+                sock.close()
+            except OSError:
+                print(f"Port {self.thread_server_port} became occupied while waiting")
+                self._kill_process_on_port(self.thread_server_port)
+                time.sleep(0.5)
+            
             try:
                 self.thread_server = run_server_in_thread(port=self.thread_server_port, delay=0)
                 self.current_stage = "thread"
                 print(f"Thread server started on port {self.thread_server_port}")
+                # Store the process for later cleanup
+                if hasattr(self.thread_server, 'pid'):
+                    print(f"Thread server process PID: {self.thread_server.pid}")
             except Exception as e:
                 print(f"Failed to start thread server: {e}")
                 self.current_stage = "checkpoint"
@@ -110,18 +115,46 @@ class ManagedWidget(SyftWidget):
     
     def _stop_thread_server(self):
         """Stop the thread server"""
-        if self.thread_server:
-            print("Stopping thread server...")
+        if self.thread_server and hasattr(self.thread_server, 'is_alive'):
+            print(f"Stopping thread server on port {self.thread_server_port}...")
             try:
-                # Now it's a process, so we can terminate it
-                self.thread_server.terminate()
-                self.thread_server.join(timeout=2)  # Wait up to 2 seconds
                 if self.thread_server.is_alive():
-                    self.thread_server.kill()  # Force kill if still alive
+                    # Terminate the process
+                    self.thread_server.terminate()
+                    self.thread_server.join(timeout=2)  # Wait up to 2 seconds
+                    
+                    if self.thread_server.is_alive():
+                        print("Thread server didn't stop gracefully, force killing...")
+                        self.thread_server.kill()  # Force kill if still alive
+                        self.thread_server.join(timeout=1)
+                    
+                    print("Thread server process terminated")
+                else:
+                    print("Thread server process was already dead")
             except Exception as e:
                 print(f"Error stopping thread server: {e}")
             finally:
                 self.thread_server = None
+        else:
+            # Try to kill by port if we don't have a process reference
+            if self.thread_server_port:
+                self._kill_process_on_port(self.thread_server_port)
+            self.thread_server = None
+    
+    def _kill_process_on_port(self, port):
+        """Kill any process running on the specified port"""
+        import subprocess
+        try:
+            result = subprocess.run(['lsof', '-t', f'-i:{port}'], 
+                                  capture_output=True, text=True)
+            if result.stdout.strip():
+                pids = result.stdout.strip().split('\n')
+                for pid in pids:
+                    print(f"Killing process {pid} on port {port}")
+                    subprocess.run(['kill', '-9', pid])
+                time.sleep(0.5)  # Give it time to release the port
+        except Exception as e:
+            print(f"Could not kill process on port {port}: {e}")
     
     def _start_syftbox_monitoring(self):
         """Start monitoring for SyftBox app"""
