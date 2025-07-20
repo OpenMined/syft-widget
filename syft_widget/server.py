@@ -73,17 +73,21 @@ def create_server():
 
 import multiprocessing
 
+def _run_server_process(port: int):
+    """Top-level function for multiprocessing"""
+    app = create_server()
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="error")
+
 def run_server_in_thread(port: int = 8000, delay: float = 0):
     if delay > 0:
         time.sleep(delay)
     
-    app = create_server()
-    
     # Use a process instead of thread so we can actually kill it
-    def run():
-        uvicorn.run(app, host="0.0.0.0", port=port, log_level="error")
-    
-    process = multiprocessing.Process(target=run, daemon=True)
+    process = multiprocessing.Process(
+        target=_run_server_process, 
+        args=(port,),
+        daemon=True
+    )
     process.start()
     return process
 
