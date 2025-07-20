@@ -18,8 +18,8 @@ class ManagedWidget(SyftWidget):
     
     def __init__(
         self,
-        app_name: str = "syft-perm",
-        repo_url: str = "https://github.com/OpenMined/syft-perm",
+        app_name: str = "syft-widget",
+        repo_url: str = "https://github.com/OpenMined/syft-widget",
         thread_server_port: int = 8001,
         endpoints: Optional[Dict[str, Callable[[], Any]]] = None,
         **kwargs

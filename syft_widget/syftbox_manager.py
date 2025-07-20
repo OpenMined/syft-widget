@@ -11,8 +11,8 @@ from typing import Optional, Callable
 class SyftBoxManager:
     def __init__(
         self, 
-        app_name: str = "syft-perm",
-        repo_url: str = "https://github.com/OpenMined/syft-perm",
+        app_name: str = "syft-widget",
+        repo_url: str = "https://github.com/OpenMined/syft-widget",
         discovery_port: int = 62050,
         check_interval: float = 1.0
     ):
