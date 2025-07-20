@@ -129,9 +129,13 @@ class ManagedWidget(SyftWidget):
     
     def _stop_thread_server(self):
         """Stop the thread server"""
+        from .process_tracker import untrack_process, kill_processes_on_port
+        
         if self.thread_server and hasattr(self.thread_server, 'is_alive'):
             print(f"Stopping thread server on port {self.thread_server_port}...")
             try:
+                pid = self.thread_server.pid if hasattr(self.thread_server, 'pid') else None
+                
                 if self.thread_server.is_alive():
                     # Terminate the process
                     self.thread_server.terminate()
@@ -145,30 +149,26 @@ class ManagedWidget(SyftWidget):
                     print("Thread server process terminated")
                 else:
                     print("Thread server process was already dead")
+                
+                # Untrack the process
+                if pid:
+                    untrack_process(pid)
+                    
             except Exception as e:
                 print(f"Error stopping thread server: {e}")
             finally:
                 self.thread_server = None
-        else:
-            # Try to kill by port if we don't have a process reference
-            if self.thread_server_port:
-                self._kill_process_on_port(self.thread_server_port)
-            self.thread_server = None
+        
+        # Always try to kill by port to catch any orphaned processes
+        if self.thread_server_port:
+            kill_processes_on_port(self.thread_server_port)
+        
+        self.thread_server = None
     
     def _kill_process_on_port(self, port):
         """Kill any process running on the specified port"""
-        import subprocess
-        try:
-            result = subprocess.run(['lsof', '-t', f'-i:{port}'], 
-                                  capture_output=True, text=True)
-            if result.stdout.strip():
-                pids = result.stdout.strip().split('\n')
-                for pid in pids:
-                    print(f"Killing process {pid} on port {port}")
-                    subprocess.run(['kill', '-9', pid])
-                time.sleep(0.5)  # Give it time to release the port
-        except Exception as e:
-            print(f"Could not kill process on port {port}: {e}")
+        from .process_tracker import kill_processes_on_port
+        kill_processes_on_port(port)
     
     def _start_syftbox_monitoring(self):
         """Start monitoring for SyftBox app"""

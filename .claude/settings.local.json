@@ -6,7 +6,10 @@
       "Bash(python test:*)",
       "Bash(python3:*)",
       "Bash(lsof:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(jupyter notebook)",
+      "Bash(pip3 install:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }

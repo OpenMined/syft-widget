@@ -46,6 +46,7 @@ def create_server():
         import signal
         # Schedule shutdown after response
         def stop_server():
+            import os
             time.sleep(0.5)
             os.kill(os.getpid(), signal.SIGTERM)
         
@@ -72,15 +73,31 @@ def create_server():
 
 
 import multiprocessing
+from .process_tracker import track_process, untrack_process, kill_processes_on_port
 
 def _run_server_process(port: int):
     """Top-level function for multiprocessing"""
+    # Register signal handlers to clean up on exit
+    import signal
+    import sys
+    
+    def signal_handler(sig, frame):
+        print(f"Server process {os.getpid()} received signal {sig}, exiting...")
+        sys.exit(0)
+    
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    
     app = create_server()
     uvicorn.run(app, host="0.0.0.0", port=port, log_level="error")
 
 def run_server_in_thread(port: int = 8000, delay: float = 0):
     if delay > 0:
         time.sleep(delay)
+    
+    # First kill any existing processes on this port
+    kill_processes_on_port(port)
+    time.sleep(0.5)  # Give it time to clean up
     
     # Use a process instead of thread so we can actually kill it
     process = multiprocessing.Process(
@@ -89,6 +106,11 @@ def run_server_in_thread(port: int = 8000, delay: float = 0):
         daemon=True
     )
     process.start()
+    
+    # Track the process
+    track_process(process.pid)
+    print(f"Started and tracking server process {process.pid} on port {port}")
+    
     return process
 
 
