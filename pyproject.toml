@@ -3,7 +3,7 @@ name = "syft-widget"
 version = "0.1.0"
 description = "A toolkit for interactive Jupyter widgets with server/snapshot switching"
 authors = [{name = "Your Name", email = "your.email@example.com"}]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "ipywidgets>=8.0.0",
     "requests>=2.28.0",
