@@ -21,6 +21,14 @@ def create_server():
     async def health():
         return {"status": "ok"}
     
+    @app.get("/version")
+    async def version():
+        try:
+            import syft_widget
+            return {"version": syft_widget.__version__}
+        except:
+            return {"version": "unknown"}
+    
     @app.get("/time")
     async def get_time():
         return {"timestamp": int(time.time()), "formatted": time.strftime("%Y-%m-%d %H:%M:%S")}
@@ -30,6 +38,20 @@ def create_server():
         # Simulate some server-side action
         timestamp = data.get("timestamp", "No timestamp provided")
         return {"message": f"Action performed successfully at {timestamp}", "server_time": time.strftime("%Y-%m-%d %H:%M:%S")}
+    
+    @app.post("/shutdown")
+    async def shutdown():
+        """Endpoint to shutdown the server"""
+        import os
+        import signal
+        # Schedule shutdown after response
+        def stop_server():
+            time.sleep(0.5)
+            os.kill(os.getpid(), signal.SIGTERM)
+        
+        thread = threading.Thread(target=stop_server)
+        thread.start()
+        return {"message": "Server shutting down..."}
     
     return app
 

@@ -61,7 +61,7 @@ class SyftWidget:
 
 
 class TimeWidget(SyftWidget):
-    def __init__(self, server_instance=None, **kwargs):
+    def __init__(self, server_instance=None, server_url="http://localhost:8000", **kwargs):
         # Always create a snapshot with current time
         # This represents what the server endpoint would return
         def get_time_snapshot():
@@ -75,6 +75,8 @@ class TimeWidget(SyftWidget):
             "/time": get_time_snapshot
         }
         
+        # Pass server_url to parent
+        kwargs['server_url'] = server_url
         super().__init__(endpoints=endpoints, **kwargs)
         self.widget_id = f"syft-widget-{uuid.uuid4().hex[:8]}"
         self.iframe = widgets.HTML()

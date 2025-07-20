@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(SYFTBOX_ASSIGNED_PORT=8006 ./run.sh)",
+      "Bash(python test:*)",
+      "Bash(python3:*)",
+      "Bash(lsof:*)",
+      "Bash(cat:*)"
     ],
     "deny": []
   }

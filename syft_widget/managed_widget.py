@@ -21,6 +21,7 @@ class ManagedWidget(SyftWidget):
         app_name: str = "syft-widget",
         repo_url: str = "https://github.com/OpenMined/syft-widget",
         thread_server_port: int = 8001,
+        discovery_port: int = 62050,
         endpoints: Optional[Dict[str, Callable[[], Any]]] = None,
         **kwargs
     ):
@@ -34,6 +35,7 @@ class ManagedWidget(SyftWidget):
         self.app_name = app_name
         self.repo_url = repo_url
         self.thread_server_port = thread_server_port
+        self.discovery_port = discovery_port
         self.thread_server = None
         self.syftbox_manager = None
         self.current_stage = "checkpoint"
@@ -43,24 +45,54 @@ class ManagedWidget(SyftWidget):
         # Create snapshots
         self._create_snapshots()
         
-        # Start the thread server immediately
-        self._start_thread_server()
-        
         # Start monitoring for SyftBox
         self._start_syftbox_monitoring()
+        
+        # Only start thread server if SyftBox isn't already available
+        self._check_and_start_thread_server()
+    
+    def _check_and_start_thread_server(self):
+        """Check if we need to start the thread server"""
+        # Quick check if SyftBox server is already available
+        if self.syftbox_manager and self.syftbox_manager.check_syftbox_server():
+            print("SyftBox server already available, skipping thread server")
+            self.current_stage = "syftbox"
+            self.server_url = self.syftbox_manager.get_syftbox_server_url()
+        else:
+            # No SyftBox server, start thread server
+            self._start_thread_server()
     
     def _start_thread_server(self):
-        """Start the Python thread server"""
-        print(f"Starting thread server on port {self.thread_server_port}...")
-        self.thread_server = run_server_in_thread(port=self.thread_server_port)
-        self.current_stage = "thread"
-        print("Thread server started")
+        """Start the Python thread server with a delay to simulate startup time"""
+        if self.thread_server:
+            print("Thread server already running")
+            return
+            
+        def delayed_start():
+            print(f"Thread server will start in 2 seconds on port {self.thread_server_port}...")
+            time.sleep(2)
+            self.thread_server = run_server_in_thread(port=self.thread_server_port, delay=0)
+            self.current_stage = "thread"
+            print(f"Thread server started on port {self.thread_server_port}")
+        
+        # Start in a separate thread so it doesn't block
+        start_thread = threading.Thread(target=delayed_start, daemon=True)
+        start_thread.start()
+    
+    def _stop_thread_server(self):
+        """Stop the thread server"""
+        if self.thread_server:
+            print("Stopping thread server...")
+            # Thread is daemon, so it will stop when main program exits
+            # But we can signal that it's no longer needed
+            self.thread_server = None
     
     def _start_syftbox_monitoring(self):
         """Start monitoring for SyftBox app"""
         self.syftbox_manager = SyftBoxManager(
             app_name=self.app_name,
-            repo_url=self.repo_url
+            repo_url=self.repo_url,
+            discovery_port=self.discovery_port
         )
         
         def on_syftbox_ready(syftbox_url: str):
@@ -69,14 +101,51 @@ class ManagedWidget(SyftWidget):
             self.server_url = syftbox_url
             self.current_stage = "syftbox"
             
-            # Kill the thread server
-            if self.thread_server:
-                print("Stopping thread server...")
-                # Thread is daemon, so it will stop when main program exits
-                # But we can signal the frontend to switch servers
-                self.thread_server = None
+            # Stop the thread server since SyftBox is available
+            self._stop_thread_server()
         
+        def on_syftbox_lost():
+            """Called when SyftBox app becomes unavailable"""
+            print("SyftBox app lost, falling back to thread server")
+            self.current_stage = "thread"
+            self.server_url = f"http://localhost:{self.thread_server_port}"
+            
+            # Restart thread server
+            self._start_thread_server()
+        
+        # Start standard monitoring first
         self.syftbox_manager.start_monitoring(on_ready_callback=on_syftbox_ready)
+        
+        # Then start continuous monitoring for lost connections
+        self._monitor_thread = threading.Thread(
+            target=self._continuous_monitoring,
+            args=(on_syftbox_ready, on_syftbox_lost),
+            daemon=True
+        )
+        self._monitor_thread.start()
+    
+    def _continuous_monitoring(self, on_ready, on_lost):
+        """Continuously monitor SyftBox availability and manage thread server"""
+        syftbox_was_available = False
+        
+        while True:
+            try:
+                if self.syftbox_manager:
+                    is_available = self.syftbox_manager.check_syftbox_server()
+                    
+                    if is_available and not syftbox_was_available:
+                        # SyftBox became available
+                        syftbox_was_available = True
+                        on_ready(self.syftbox_manager.get_syftbox_server_url())
+                    elif not is_available and syftbox_was_available:
+                        # SyftBox became unavailable
+                        syftbox_was_available = False
+                        on_lost()
+                
+                time.sleep(2)  # Check every 2 seconds
+            except Exception as e:
+                print(f"Error in monitoring: {e}")
+                time.sleep(5)
     
     def _update_display(self):
         """Render the widget"""
@@ -122,7 +191,40 @@ class ManagedWidget(SyftWidget):
                 .stage {{
                     font-size: 12px;
                     color: #999;
-                    margin-bottom: 5px;
+                    margin-bottom: 15px;
+                }}
+                .button-group {{
+                    display: flex;
+                    gap: 10px;
+                    margin-top: 15px;
+                }}
+                .control-button {{
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 4px;
+                    font-size: 14px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    flex: 1;
+                }}
+                .control-button:disabled {{
+                    background: #e0e0e0;
+                    color: #999;
+                    cursor: not-allowed;
+                }}
+                .kill-thread {{
+                    background: #ff6b6b;
+                    color: white;
+                }}
+                .kill-thread:hover:not(:disabled) {{
+                    background: #ff5252;
+                }}
+                .kill-syftbox {{
+                    background: #ff9800;
+                    color: white;
+                }}
+                .kill-syftbox:hover:not(:disabled) {{
+                    background: #f57c00;
                 }}
                 .pulse {{
                     animation: pulse 0.5s ease-in-out;
@@ -140,12 +242,21 @@ class ManagedWidget(SyftWidget):
                 <div class="formatted" id="formatted">{initial_data.get('formatted', 'N/A')}</div>
                 <div class="status" id="status">🔴 Checkpoint</div>
                 <div class="stage" id="stage">Stage: Checkpoint data</div>
+                <div class="button-group">
+                    <button class="control-button kill-thread" id="killThreadBtn" disabled onclick="killThreadServer()">
+                        Kill Thread Server
+                    </button>
+                    <button class="control-button kill-syftbox" id="killSyftBoxBtn" disabled onclick="killSyftBoxApp()">
+                        Kill SyftBox App
+                    </button>
+                </div>
             </div>
             <script>
                 let currentStage = 'checkpoint';
                 let isLive = false;
                 let threadServerUrl = '{self.server_url}';
                 let syftboxServerUrl = null;
+                let lastSuccessfulData = {initial_data}; // Keep track of last good data
                 const endpoint = '/time';
                 const checkInterval = {int(self.check_interval * 1000)};
                 const syftboxCheckInterval = 2000; // Check for SyftBox every 2 seconds
@@ -254,16 +365,55 @@ class ManagedWidget(SyftWidget):
                     if (data) {{
                         document.getElementById('timestamp').textContent = data.timestamp || 'N/A';
                         document.getElementById('formatted').textContent = data.formatted || 'N/A';
+                        lastSuccessfulData = data; // Update checkpoint with fresh data
                     }} else {{
-                        // Use initial checkpoint data
-                        document.getElementById('timestamp').textContent = '{initial_data.get('timestamp', 'N/A')}';
-                        document.getElementById('formatted').textContent = '{initial_data.get('formatted', 'N/A')}';
+                        // Use last successful data as checkpoint
+                        document.getElementById('timestamp').textContent = lastSuccessfulData.timestamp || 'N/A';
+                        document.getElementById('formatted').textContent = lastSuccessfulData.formatted || 'N/A';
                     }}
                     
                     // Update status
                     const stage = stages[currentStage];
                     document.getElementById('status').innerHTML = `${{stage.icon}} ${{stage.name}}`;
                     document.getElementById('stage').textContent = `Stage: ${{currentStage}} - ${{stage.url || 'Local data'}}`;
+                    
+                    // Update button states
+                    const killThreadBtn = document.getElementById('killThreadBtn');
+                    const killSyftBoxBtn = document.getElementById('killSyftBoxBtn');
+                    
+                    // Thread server button: enabled only when thread server is running
+                    killThreadBtn.disabled = currentStage !== 'thread';
+                    
+                    // SyftBox button: enabled only when SyftBox is running
+                    killSyftBoxBtn.disabled = currentStage !== 'syftbox';
+                }}
+                
+                async function killThreadServer() {{
+                    try {{
+                        // Signal to kill thread server
+                        const response = await fetch(threadServerUrl + '/shutdown', {{
+                            method: 'POST',
+                            mode: 'cors',
+                            cache: 'no-cache'
+                        }});
+                    }} catch (e) {{
+                        // Server might not respond if it's shutting down
+                    }}
+                    
+                    // Update UI immediately
+                    currentStage = 'checkpoint';
+                    updateDisplay();
+                }}
+                
+                async function killSyftBoxApp() {{
+                    // For SyftBox, we can't directly kill it from JavaScript
+                    // But we can simulate it being unavailable
+                    alert('To kill the SyftBox app, you need to stop it from the SyftBox interface or terminal.');
+                    
+                    // You could also make a request to a management endpoint if available
+                    // For now, just update the UI to show it's checking
+                    currentStage = 'checkpoint';
+                    updateDisplay();
                 }}
                 
                 // Start polling
@@ -280,7 +430,7 @@ class ManagedWidget(SyftWidget):
         <iframe 
             id="{self.widget_id}" 
             srcdoc="{html_content.replace('"', '&quot;')}"
-            style="width: 100%; height: 250px; border: none;"
+            style="width: 100%; height: 320px; border: none;"
             sandbox="allow-scripts">
         </iframe>
         """

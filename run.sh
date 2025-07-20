@@ -81,6 +81,16 @@ server.serve_forever()
 DISCOVERY_PID=$!
 echo "Discovery server started with PID $DISCOVERY_PID"
 
+# Kill any existing process on the assigned port
+echo "Checking for existing process on port $SYFTBOX_ASSIGNED_PORT..."
+PID_TO_KILL=$(lsof -t -i:$SYFTBOX_ASSIGNED_PORT || true)
+if [ -n "$PID_TO_KILL" ]; then
+    echo "Found existing process with PID: $PID_TO_KILL. Terminating..."
+    kill -9 $PID_TO_KILL
+    sleep 1
+    echo "Process terminated."
+fi
+
 # Launch the syft-widget app server with auto-reload
 echo "Launching syft-widget server on port $SYFTBOX_ASSIGNED_PORT with auto-reload..."
 export SYFTBOX_PORT=$SYFTBOX_ASSIGNED_PORT
