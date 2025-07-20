@@ -80,6 +80,7 @@ def _run_server_process(port: int):
     # Register signal handlers to clean up on exit
     import signal
     import sys
+    import os
     
     def signal_handler(sig, frame):
         print(f"Server process {os.getpid()} received signal {sig}, exiting...")
