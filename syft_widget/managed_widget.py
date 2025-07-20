@@ -67,13 +67,27 @@ class ManagedWidget(SyftWidget):
         if self.thread_server:
             print("Thread server already running")
             return
+        
+        # Check if port is already in use
+        import socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            sock.bind(('', self.thread_server_port))
+            sock.close()
+        except OSError:
+            print(f"Port {self.thread_server_port} is already in use, skipping thread server start")
+            return
             
         def delayed_start():
             print(f"Thread server will start in 2 seconds on port {self.thread_server_port}...")
             time.sleep(2)
-            self.thread_server = run_server_in_thread(port=self.thread_server_port, delay=0)
-            self.current_stage = "thread"
-            print(f"Thread server started on port {self.thread_server_port}")
+            try:
+                self.thread_server = run_server_in_thread(port=self.thread_server_port, delay=0)
+                self.current_stage = "thread"
+                print(f"Thread server started on port {self.thread_server_port}")
+            except Exception as e:
+                print(f"Failed to start thread server: {e}")
+                self.current_stage = "checkpoint"
         
         # Start in a separate thread so it doesn't block
         start_thread = threading.Thread(target=delayed_start, daemon=True)
@@ -83,9 +97,16 @@ class ManagedWidget(SyftWidget):
         """Stop the thread server"""
         if self.thread_server:
             print("Stopping thread server...")
-            # Thread is daemon, so it will stop when main program exits
-            # But we can signal that it's no longer needed
-            self.thread_server = None
+            try:
+                # Now it's a process, so we can terminate it
+                self.thread_server.terminate()
+                self.thread_server.join(timeout=2)  # Wait up to 2 seconds
+                if self.thread_server.is_alive():
+                    self.thread_server.kill()  # Force kill if still alive
+            except Exception as e:
+                print(f"Error stopping thread server: {e}")
+            finally:
+                self.thread_server = None
     
     def _start_syftbox_monitoring(self):
         """Start monitoring for SyftBox app"""
@@ -106,11 +127,11 @@ class ManagedWidget(SyftWidget):
         
         def on_syftbox_lost():
             """Called when SyftBox app becomes unavailable"""
-            print("SyftBox app lost, falling back to thread server")
-            self.current_stage = "thread"
+            print(f"SyftBox app lost, falling back to thread server on port {self.thread_server_port}")
+            self.current_stage = "checkpoint"  # First go to checkpoint
             self.server_url = f"http://localhost:{self.thread_server_port}"
             
-            # Restart thread server
+            # Restart thread server (which will transition to "thread" stage after 2 seconds)
             self._start_thread_server()
         
         # Start standard monitoring first
@@ -131,20 +152,33 @@ class ManagedWidget(SyftWidget):
         while True:
             try:
                 if self.syftbox_manager:
+                    # Force a fresh check
+                    self.syftbox_manager.syftbox_server_url = None  # Clear cached URL
                     is_available = self.syftbox_manager.check_syftbox_server()
                     
-                    if is_available and not syftbox_was_available:
-                        # SyftBox became available
-                        syftbox_was_available = True
-                        on_ready(self.syftbox_manager.get_syftbox_server_url())
-                    elif not is_available and syftbox_was_available:
-                        # SyftBox became unavailable
+                    # Also check current stage to handle manual kills
+                    if self.current_stage == "syftbox" and not is_available:
+                        # SyftBox was running but is now unavailable
+                        print("SyftBox server lost!")
                         syftbox_was_available = False
                         on_lost()
+                    elif is_available and not syftbox_was_available:
+                        # SyftBox became available
+                        print("SyftBox server detected!")
+                        syftbox_was_available = True
+                        on_ready(self.syftbox_manager.get_syftbox_server_url())
+                    elif is_available:
+                        syftbox_was_available = True
+                    else:
+                        syftbox_was_available = False
                 
                 time.sleep(2)  # Check every 2 seconds
             except Exception as e:
                 print(f"Error in monitoring: {e}")
+                # If there's an error and we think SyftBox is running, assume it's down
+                if syftbox_was_available:
+                    syftbox_was_available = False
+                    on_lost()
                 time.sleep(5)
     
     def _update_display(self):
@@ -406,13 +440,30 @@ class ManagedWidget(SyftWidget):
                 }}
                 
                 async function killSyftBoxApp() {{
-                    // For SyftBox, we can't directly kill it from JavaScript
-                    // But we can simulate it being unavailable
-                    alert('To kill the SyftBox app, you need to stop it from the SyftBox interface or terminal.');
+                    if (!syftboxServerUrl) {{
+                        alert('SyftBox server URL not available');
+                        return;
+                    }}
                     
-                    // You could also make a request to a management endpoint if available
-                    // For now, just update the UI to show it's checking
+                    try {{
+                        // Call the kill endpoint on the SyftBox server
+                        const response = await fetch(syftboxServerUrl + '/kill-syftbox', {{
+                            method: 'POST',
+                            mode: 'cors',
+                            cache: 'no-cache'
+                        }});
+                        
+                        if (response.ok) {{
+                            console.log('SyftBox app kill signal sent');
+                        }}
+                    }} catch (e) {{
+                        // Server might not respond if it's shutting down
+                        console.log('SyftBox app may be shutting down');
+                    }}
+                    
+                    // Update UI immediately to checkpoint
                     currentStage = 'checkpoint';
+                    syftboxServerUrl = null;
                     updateDisplay();
                 }}
                 

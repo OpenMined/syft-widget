@@ -95,4 +95,14 @@ fi
 echo "Launching syft-widget server on port $SYFTBOX_ASSIGNED_PORT with auto-reload..."
 export SYFTBOX_PORT=$SYFTBOX_ASSIGNED_PORT
 export DISCOVERY_PORT=$DISCOVERY_PORT
-uv run uvicorn syft_widget.server:app --host 0.0.0.0 --port $SYFTBOX_ASSIGNED_PORT --reload
+
+# Set up process group for clean shutdown
+set -m
+uv run uvicorn syft_widget.server:app --host 0.0.0.0 --port $SYFTBOX_ASSIGNED_PORT --reload &
+MAIN_PID=$!
+
+# Trap signals to kill the entire process group
+trap "kill -TERM -$$" SIGINT SIGTERM
+
+# Wait for the main process
+wait $MAIN_PID
