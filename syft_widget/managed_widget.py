@@ -68,14 +68,29 @@ class ManagedWidget(SyftWidget):
             print("Thread server already running")
             return
         
-        # Check if port is already in use
+        # Check if port is already in use and try to kill existing process
         import socket
+        import subprocess
+        
+        # First try to kill any existing process on this port
+        try:
+            result = subprocess.run(['lsof', '-t', f'-i:{self.thread_server_port}'], 
+                                  capture_output=True, text=True)
+            if result.stdout.strip():
+                pid = result.stdout.strip()
+                print(f"Killing existing process {pid} on port {self.thread_server_port}")
+                subprocess.run(['kill', '-9', pid])
+                time.sleep(0.5)  # Give it time to release the port
+        except Exception as e:
+            print(f"Could not check/kill existing process: {e}")
+        
+        # Now check if port is free
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             sock.bind(('', self.thread_server_port))
             sock.close()
         except OSError:
-            print(f"Port {self.thread_server_port} is already in use, skipping thread server start")
+            print(f"Port {self.thread_server_port} is still in use after kill attempt")
             return
             
         def delayed_start():
@@ -118,6 +133,10 @@ class ManagedWidget(SyftWidget):
         
         def on_syftbox_ready(syftbox_url: str):
             """Called when SyftBox app is ready"""
+            if self.current_stage == "syftbox":
+                # Already in syftbox mode, skip
+                return
+                
             print(f"SyftBox app ready at {syftbox_url}")
             self.server_url = syftbox_url
             self.current_stage = "syftbox"
@@ -147,38 +166,40 @@ class ManagedWidget(SyftWidget):
     
     def _continuous_monitoring(self, on_ready, on_lost):
         """Continuously monitor SyftBox availability and manage thread server"""
-        syftbox_was_available = False
+        # Give initial monitoring time to complete
+        time.sleep(5)
+        
+        last_syftbox_url = None
+        consecutive_failures = 0
         
         while True:
             try:
                 if self.syftbox_manager:
-                    # Force a fresh check
-                    self.syftbox_manager.syftbox_server_url = None  # Clear cached URL
+                    # Get current URL without clearing cache
+                    current_url = self.syftbox_manager.get_syftbox_server_url()
                     is_available = self.syftbox_manager.check_syftbox_server()
                     
-                    # Also check current stage to handle manual kills
-                    if self.current_stage == "syftbox" and not is_available:
-                        # SyftBox was running but is now unavailable
-                        print("SyftBox server lost!")
-                        syftbox_was_available = False
-                        on_lost()
-                    elif is_available and not syftbox_was_available:
-                        # SyftBox became available
-                        print("SyftBox server detected!")
-                        syftbox_was_available = True
-                        on_ready(self.syftbox_manager.get_syftbox_server_url())
-                    elif is_available:
-                        syftbox_was_available = True
+                    if is_available:
+                        consecutive_failures = 0
+                        if current_url != last_syftbox_url and self.current_stage != "syftbox":
+                            # New SyftBox server detected
+                            print(f"SyftBox server detected at {current_url}!")
+                            last_syftbox_url = current_url
+                            on_ready(current_url)
                     else:
-                        syftbox_was_available = False
+                        # Server check failed
+                        if self.current_stage == "syftbox":
+                            consecutive_failures += 1
+                            # Only consider it lost after 3 consecutive failures
+                            if consecutive_failures >= 3:
+                                print(f"SyftBox server lost after {consecutive_failures} failed checks!")
+                                last_syftbox_url = None
+                                consecutive_failures = 0
+                                on_lost()
                 
-                time.sleep(2)  # Check every 2 seconds
+                time.sleep(3)  # Check every 3 seconds
             except Exception as e:
                 print(f"Error in monitoring: {e}")
-                # If there's an error and we think SyftBox is running, assume it's down
-                if syftbox_was_available:
-                    syftbox_was_available = False
-                    on_lost()
                 time.sleep(5)
     
     def _update_display(self):
@@ -367,24 +388,43 @@ class ManagedWidget(SyftWidget):
                     let data = null;
                     let newStage = currentStage;
                     
-                    // Check for SyftBox server
-                    if (!syftboxServerUrl) {{
+                    // Check for SyftBox server first
+                    if (!syftboxServerUrl || currentStage !== 'syftbox') {{
                         syftboxServerUrl = await checkSyftBoxDiscovery();
                     }}
                     
-                    if (syftboxServerUrl && await checkServer(syftboxServerUrl)) {{
-                        // SyftBox is available
-                        data = await getData(syftboxServerUrl);
-                        if (data) {{
-                            newStage = 'syftbox';
-                            stages.syftbox.url = syftboxServerUrl;
+                    let syftboxAvailable = false;
+                    let threadAvailable = false;
+                    
+                    // Check both servers
+                    if (syftboxServerUrl) {{
+                        syftboxAvailable = await checkServer(syftboxServerUrl);
+                        if (syftboxAvailable) {{
+                            data = await getData(syftboxServerUrl);
+                            if (data) {{
+                                newStage = 'syftbox';
+                                stages.syftbox.url = syftboxServerUrl;
+                            }}
+                        }} else {{
+                            // SyftBox not available, clear URL
+                            syftboxServerUrl = null;
                         }}
-                    }} else if (await checkServer(threadServerUrl)) {{
-                        // Thread server is available
-                        data = await getData(threadServerUrl);
-                        if (data) {{
-                            newStage = 'thread';
+                    }}
+                    
+                    // If SyftBox not available, check thread server
+                    if (!syftboxAvailable) {{
+                        threadAvailable = await checkServer(threadServerUrl);
+                        if (threadAvailable) {{
+                            data = await getData(threadServerUrl);
+                            if (data) {{
+                                newStage = 'thread';
+                            }}
                         }}
+                    }}
+                    
+                    // If neither available, use checkpoint
+                    if (!syftboxAvailable && !threadAvailable) {{
+                        newStage = 'checkpoint';
                     }}
                     
                     // Update stage if changed
@@ -499,6 +539,8 @@ class ManagedWidget(SyftWidget):
         super().stop()
 
 
+import random
+
 class ManagedTimeWidget(ManagedWidget):
     """Time widget with managed server transitions"""
     
@@ -511,5 +553,9 @@ class ManagedTimeWidget(ManagedWidget):
         endpoints = {
             "/time": get_time_snapshot
         }
+        
+        # If no port specified, use a random one to avoid conflicts
+        if 'thread_server_port' not in kwargs:
+            kwargs['thread_server_port'] = random.randint(8100, 8199)
         
         super().__init__(endpoints=endpoints, **kwargs)
