@@ -41,6 +41,7 @@ class ManagedWidget(SyftWidget):
         self.current_stage = "checkpoint"
         self.widget_id = f"syft-widget-{uuid.uuid4().hex[:8]}"
         self.iframe = widgets.HTML()
+        self._stop_monitoring = False
         
         # Create snapshots
         self._create_snapshots()
@@ -53,13 +54,25 @@ class ManagedWidget(SyftWidget):
     
     def _check_and_start_thread_server(self):
         """Check if we need to start the thread server"""
+        # First check if thread server is already running
+        import requests
+        try:
+            response = requests.get(f"{self.server_url}/health", timeout=1)
+            if response.status_code == 200:
+                print(f"Thread server already running on {self.server_url}")
+                self.current_stage = "thread"
+                return
+        except:
+            pass
+        
         # Quick check if SyftBox server is already available
         if self.syftbox_manager and self.syftbox_manager.check_syftbox_server():
             print("SyftBox server already available, skipping thread server")
             self.current_stage = "syftbox"
             self.server_url = self.syftbox_manager.get_syftbox_server_url()
         else:
-            # No SyftBox server, start thread server
+            # No servers available, start thread server
+            print("No existing servers found, starting thread server")
             self._start_thread_server()
     
     def _start_thread_server(self):
@@ -200,12 +213,19 @@ class ManagedWidget(SyftWidget):
     def _continuous_monitoring(self, on_ready, on_lost):
         """Continuously monitor SyftBox availability and manage thread server"""
         # Give initial monitoring time to complete
-        time.sleep(5)
+        time.sleep(3)
+        
+        # Check initial state
+        if self.current_stage == "syftbox":
+            print("Already connected to SyftBox, monitoring for disconnection")
+        elif self.current_stage == "thread":
+            print("Thread server active, monitoring for SyftBox availability")
         
         last_syftbox_url = None
         consecutive_failures = 0
+        thread_check_counter = 0
         
-        while True:
+        while not self._stop_monitoring:
             try:
                 if self.syftbox_manager:
                     # Get current URL without clearing cache
@@ -230,10 +250,20 @@ class ManagedWidget(SyftWidget):
                                 consecutive_failures = 0
                                 on_lost()
                 
+                # Also check if we're in checkpoint mode and need a thread server
+                if self.current_stage == "checkpoint":
+                    thread_check_counter += 1
+                    if thread_check_counter >= 2:  # After 6 seconds in checkpoint
+                        print("Still in checkpoint mode, checking if thread server needed")
+                        self._check_and_start_thread_server()
+                        thread_check_counter = 0
+                
                 time.sleep(3)  # Check every 3 seconds
             except Exception as e:
                 print(f"Error in monitoring: {e}")
                 time.sleep(5)
+        
+        print("Monitoring thread exiting")
     
     def _update_display(self):
         """Render the widget"""
@@ -567,9 +597,41 @@ class ManagedWidget(SyftWidget):
     
     def stop(self):
         """Stop all monitoring and servers"""
+        print("Stopping ManagedWidget...")
+        
+        # Stop monitoring thread
+        if hasattr(self, '_monitor_thread') and self._monitor_thread and self._monitor_thread.is_alive():
+            print("Stopping monitoring thread...")
+            # Set a flag to stop the monitoring loop
+            self._stop_monitoring = True
+            
+        # Stop thread server
+        self._stop_thread_server()
+        
+        # Stop SyftBox monitoring
         if self.syftbox_manager:
             self.syftbox_manager.stop_monitoring()
+            
+        # Call parent stop
         super().stop()
+        print("ManagedWidget stopped")
+    
+    def __del__(self):
+        """Cleanup when object is garbage collected"""
+        try:
+            print(f"ManagedWidget being destroyed (port {self.thread_server_port})")
+            self.stop()
+        except Exception as e:
+            print(f"Error during ManagedWidget cleanup: {e}")
+    
+    def __enter__(self):
+        """Context manager support"""
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Cleanup when exiting context"""
+        self.stop()
+        return False
 
 
 import random
