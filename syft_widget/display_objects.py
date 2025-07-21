@@ -34,7 +34,7 @@ class APIDisplay:
         
         return mock_data
     
-    def render_content(self, data: dict) -> str:
+    def render_content(self, data: dict, server_type: str = "checkpoint") -> str:
         """Override this to render your content"""
         return f"<pre>{json.dumps(data, indent=2)}</pre>"
     
@@ -47,7 +47,7 @@ class APIDisplay:
     def _repr_html_(self):
         """Jupyter display method"""
         mock_data = self.get_mock_data()
-        initial_content = self.render_content(mock_data)
+        initial_content = self.render_content(mock_data, "checkpoint")
         
         # Get current server URL if available
         base_url = self.registry.get_base_url() if self.registry else None
@@ -62,6 +62,8 @@ class APIDisplay:
             const endpoints = {json.dumps(self.endpoints)};
             const mockData = {json.dumps(mock_data)};
             let currentData = JSON.parse(JSON.stringify(mockData));
+            let currentServerType = "checkpoint";
+            let currentPort = null;
             
             console.log(`[APIDisplay ${{displayId}}] Initialized with endpoints:`, endpoints);
             
@@ -85,41 +87,57 @@ class APIDisplay:
             async function updateDisplay() {{
                 // Try different server ports
                 let baseUrl = null;
-                const ports = [8001, 8000, 8002];  // thread port, fallback, syftbox
+                let serverType = "checkpoint";
+                const ports = [
+                    {{port: 8001, type: "thread"}},
+                    {{port: 8000, type: "thread"}},
+                    {{port: 8002, type: "syftbox"}}
+                ];
                 
-                for (const port of ports) {{
-                    if (await checkServer(`http://localhost:${{port}}`)) {{
-                        baseUrl = `http://localhost:${{port}}`;
-                        console.log(`[APIDisplay ${{displayId}}] Found server at port ${{port}}`);
+                for (const server of ports) {{
+                    if (await checkServer(`http://localhost:${{server.port}}`)) {{
+                        baseUrl = `http://localhost:${{server.port}}`;
+                        serverType = server.type;
+                        currentPort = server.port;
+                        console.log(`[APIDisplay ${{displayId}}] Found ${{server.type}} server at port ${{server.port}}`);
                         break;
                     }}
                 }}
                 
                 if (!baseUrl) {{
-                    console.log(`[APIDisplay ${{displayId}}] No servers available, using mock data`);
-                    return;
+                    console.log(`[APIDisplay ${{displayId}}] No servers available, using checkpoint data`);
+                    serverType = "checkpoint";
+                    currentPort = null;
                 }}
                 
-                // Fetch data from endpoints
+                // Update server type if changed
+                if (serverType !== currentServerType) {{
+                    currentServerType = serverType;
+                    console.log(`[APIDisplay ${{displayId}}] Server type changed to: ${{serverType}}`);
+                }}
+                
+                // Fetch data from endpoints if we have a server
                 let dataChanged = false;
-                for (const endpoint of endpoints) {{
-                    try {{
-                        const resp = await fetch(baseUrl + endpoint, {{ mode: 'cors' }});
-                        if (resp.ok) {{
-                            const data = await resp.json();
-                            if (JSON.stringify(data) !== JSON.stringify(currentData[endpoint])) {{
-                                currentData[endpoint] = data;
-                                dataChanged = true;
-                                console.log(`[APIDisplay ${{displayId}}] Updated ${{endpoint}}:`, data);
+                if (baseUrl) {{
+                    for (const endpoint of endpoints) {{
+                        try {{
+                            const resp = await fetch(baseUrl + endpoint, {{ mode: 'cors' }});
+                            if (resp.ok) {{
+                                const data = await resp.json();
+                                if (JSON.stringify(data) !== JSON.stringify(currentData[endpoint])) {{
+                                    currentData[endpoint] = data;
+                                    dataChanged = true;
+                                    console.log(`[APIDisplay ${{displayId}}] Updated ${{endpoint}}:`, data);
+                                }}
                             }}
+                        }} catch(e) {{
+                            console.error(`[APIDisplay ${{displayId}}] Error fetching ${{endpoint}}:`, e);
                         }}
-                    }} catch(e) {{
-                        console.error(`[APIDisplay ${{displayId}}] Error fetching ${{endpoint}}:`, e);
                     }}
                 }}
                 
-                // Update display if data changed
-                if (dataChanged) {{
+                // Update display if data changed or server type changed
+                if (dataChanged || serverType !== currentServerType) {{
                     const element = document.getElementById(displayId);
                     if (element) {{
                         {self.get_update_script()}
@@ -141,12 +159,20 @@ class TimeDisplay(APIDisplay):
     def __init__(self):
         super().__init__(endpoints=["/time/current", "/time/uptime"])
     
-    def render_content(self, data):
+    def render_content(self, data, server_type="checkpoint"):
         current = data.get("/time/current", {})
         uptime = data.get("/time/uptime", {})
         
+        # Server type badge
+        badge_color = {"checkpoint": "#6c757d", "thread": "#28a745", "syftbox": "#007bff"}.get(server_type, "#6c757d")
+        server_label = {"checkpoint": "📁 Checkpoint", "thread": "🧵 Thread Server", "syftbox": "📦 SyftBox"}.get(server_type, server_type)
+        
         return f"""
-        <div style="font-family: -apple-system, sans-serif; padding: 20px; background: #f0f8ff; border-radius: 8px;">
+        <div style="font-family: -apple-system, sans-serif; padding: 20px; background: #f0f8ff; border-radius: 8px; position: relative;">
+            <div style="position: absolute; top: 10px; right: 10px; background: {badge_color}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                {server_label}
+            </div>
+            
             <h3 style="margin: 0 0 15px 0;">⏰ Time Information</h3>
             
             <div style="margin-bottom: 15px;">
@@ -168,8 +194,18 @@ class TimeDisplay(APIDisplay):
         const current = currentData['/time/current'] || {};
         const uptime = currentData['/time/uptime'] || {};
         
+        // Server type badge
+        const badgeColors = {checkpoint: "#6c757d", thread: "#28a745", syftbox: "#007bff"};
+        const serverLabels = {checkpoint: "📁 Checkpoint", thread: "🧵 Thread Server", syftbox: "📦 SyftBox"};
+        const badgeColor = badgeColors[currentServerType] || "#6c757d";
+        const serverLabel = serverLabels[currentServerType] || currentServerType;
+        
         element.innerHTML = `
-        <div style="font-family: -apple-system, sans-serif; padding: 20px; background: #f0f8ff; border-radius: 8px;">
+        <div style="font-family: -apple-system, sans-serif; padding: 20px; background: #f0f8ff; border-radius: 8px; position: relative;">
+            <div style="position: absolute; top: 10px; right: 10px; background: ${badgeColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                ${serverLabel}
+            </div>
+            
             <h3 style="margin: 0 0 15px 0;">⏰ Time Information</h3>
             
             <div style="margin-bottom: 15px;">
@@ -194,13 +230,21 @@ class CPUDisplay(APIDisplay):
     def __init__(self):
         super().__init__(endpoints=["/system/cpu"])
     
-    def render_content(self, data):
+    def render_content(self, data, server_type="checkpoint"):
         cpu = data.get("/system/cpu", {})
         usage = cpu.get('usage_percent', 0)
         color = self._get_color(usage)
         
+        # Server type badge
+        badge_color = {"checkpoint": "#6c757d", "thread": "#28a745", "syftbox": "#007bff"}.get(server_type, "#6c757d")
+        server_label = {"checkpoint": "📁 Checkpoint", "thread": "🧵 Thread Server", "syftbox": "📦 SyftBox"}.get(server_type, server_type)
+        
         return f"""
-        <div style="font-family: -apple-system, sans-serif; padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 8px;">
+        <div style="font-family: -apple-system, sans-serif; padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 8px; position: relative;">
+            <div style="position: absolute; top: 10px; right: 10px; background: {badge_color}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                {server_label}
+            </div>
+            
             <h3 style="margin: 0 0 15px 0;">🖥️ CPU Monitor</h3>
             
             <div style="margin-bottom: 20px;">
@@ -242,8 +286,18 @@ class CPUDisplay(APIDisplay):
         const usage = cpu.usage_percent || 0;
         const color = usage < 50 ? '#4CAF50' : usage < 80 ? '#FF9800' : '#F44336';
         
+        // Server type badge
+        const badgeColors = {checkpoint: "#6c757d", thread: "#28a745", syftbox: "#007bff"};
+        const serverLabels = {checkpoint: "📁 Checkpoint", thread: "🧵 Thread Server", syftbox: "📦 SyftBox"};
+        const badgeColor = badgeColors[currentServerType] || "#6c757d";
+        const serverLabel = serverLabels[currentServerType] || currentServerType;
+        
         element.innerHTML = `
-        <div style="font-family: -apple-system, sans-serif; padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 8px;">
+        <div style="font-family: -apple-system, sans-serif; padding: 20px; background: #fff; border: 1px solid #ddd; border-radius: 8px; position: relative;">
+            <div style="position: absolute; top: 10px; right: 10px; background: ${badgeColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                ${serverLabel}
+            </div>
+            
             <h3 style="margin: 0 0 15px 0;">🖥️ CPU Monitor</h3>
             
             <div style="margin-bottom: 20px;">
@@ -283,14 +337,22 @@ class SystemDashboard(APIDisplay):
             "/network/status"
         ])
     
-    def render_content(self, data):
+    def render_content(self, data, server_type="checkpoint"):
         cpu = data.get("/system/cpu", {})
         memory = data.get("/system/memory", {})
         disk = data.get("/system/disk", {})
         network = data.get("/network/status", {})
         
+        # Server type badge
+        badge_color = {"checkpoint": "#6c757d", "thread": "#28a745", "syftbox": "#007bff"}.get(server_type, "#6c757d")
+        server_label = {"checkpoint": "📁 Checkpoint", "thread": "🧵 Thread Server", "syftbox": "📦 SyftBox"}.get(server_type, server_type)
+        
         return f"""
-        <div style="font-family: -apple-system, sans-serif; padding: 20px; background: #f5f5f5; border-radius: 8px;">
+        <div style="font-family: -apple-system, sans-serif; padding: 20px; background: #f5f5f5; border-radius: 8px; position: relative;">
+            <div style="position: absolute; top: 10px; right: 10px; background: {badge_color}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                {server_label}
+            </div>
+            
             <h2 style="margin: 0 0 20px 0;">📊 System Dashboard</h2>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
@@ -328,3 +390,63 @@ class SystemDashboard(APIDisplay):
             return "#FF9800"
         else:
             return "#F44336"
+    
+    def get_update_script(self):
+        return """
+        const cpu = currentData['/system/cpu'] || {};
+        const memory = currentData['/system/memory'] || {};
+        const disk = currentData['/system/disk'] || {};
+        const network = currentData['/network/status'] || {};
+        
+        // Server type badge
+        const badgeColors = {checkpoint: "#6c757d", thread: "#28a745", syftbox: "#007bff"};
+        const serverLabels = {checkpoint: "📁 Checkpoint", thread: "🧵 Thread Server", syftbox: "📦 SyftBox"};
+        const badgeColor = badgeColors[currentServerType] || "#6c757d";
+        const serverLabel = serverLabels[currentServerType] || currentServerType;
+        
+        // Helper function to get color
+        const getColor = (value) => {
+            if (value < 50) return '#4CAF50';
+            if (value < 80) return '#FF9800';
+            return '#F44336';
+        };
+        
+        // Helper function to render metric
+        const renderMetric = (name, value, unit) => {
+            const color = getColor(value);
+            return `
+            <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h4 style="margin: 0 0 10px 0;">${name}</h4>
+                <div style="font-size: 32px; font-weight: bold; color: ${color};">${value}${unit}</div>
+                <div style="background: #e0e0e0; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 10px;">
+                    <div style="background: ${color}; height: 100%; width: ${value}%;"></div>
+                </div>
+            </div>
+            `;
+        };
+        
+        element.innerHTML = `
+        <div style="font-family: -apple-system, sans-serif; padding: 20px; background: #f5f5f5; border-radius: 8px; position: relative;">
+            <div style="position: absolute; top: 10px; right: 10px; background: ${badgeColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                ${serverLabel}
+            </div>
+            
+            <h2 style="margin: 0 0 20px 0;">📊 System Dashboard</h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                ${renderMetric("CPU", cpu.usage_percent || 0, "%")}
+                ${renderMetric("Memory", memory.percent || 0, "%")}
+                ${renderMetric("Disk", disk.percent || 0, "%")}
+                
+                <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h4 style="margin: 0 0 10px 0;">🌐 Network</h4>
+                    <div style="font-size: 14px;">
+                        <div>Status: <span style="color: #4CAF50;">●</span> Connected</div>
+                        <div>↓ ${network.download_mbps || '...'} Mbps | ↑ ${network.upload_mbps || '...'} Mbps</div>
+                        <div>Latency: ${network.latency_ms || '...'} ms</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+        """
