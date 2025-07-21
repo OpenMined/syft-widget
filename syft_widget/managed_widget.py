@@ -511,6 +511,7 @@ class ManagedWidget(SyftWidget):
                 let syftboxReadyCount = 0;
                 let syftboxFailureCount = 0;
                 let transitioningToSyftbox = false;
+                let syftboxDiscoveredTime = null;
                 
                 async function updateDisplay() {{
                     let data = null;
@@ -532,26 +533,39 @@ class ManagedWidget(SyftWidget):
                             const testData = await getData(syftboxServerUrl);
                             if (testData && testData.timestamp) {{
                                 syftboxReadyCount++;
-                                // Require 2 consecutive successful checks before switching
-                                if (syftboxReadyCount >= 2) {{
+                                
+                                // Mark when we first discovered SyftBox
+                                if (!syftboxDiscoveredTime) {{
+                                    syftboxDiscoveredTime = Date.now();
+                                    console.log('SyftBox server discovered, waiting 10 seconds before switching...');
+                                }}
+                                
+                                // Check if we've waited long enough (10 seconds)
+                                const waitTime = Date.now() - syftboxDiscoveredTime;
+                                if (waitTime >= 10000 && syftboxReadyCount >= 2) {{
                                     syftboxAvailable = true;
                                     data = testData;
                                     newStage = 'syftbox';
                                     stages.syftbox.url = syftboxServerUrl;
                                     transitioningToSyftbox = true;  // Lock in the transition
-                                    console.log('SyftBox server verified ready after', syftboxReadyCount, 'checks');
+                                    console.log('Switching to SyftBox server after', Math.round(waitTime/1000), 'seconds');
                                     
                                     // Clear the transition lock after a delay
                                     setTimeout(() => {{
                                         transitioningToSyftbox = false;
                                         syftboxFailureCount = 0;  // Reset failure count
                                     }}, 5000);  // 5 seconds should be enough for backend to kill thread
+                                }} else {{
+                                    // Keep using thread server while we wait
+                                    console.log('Waiting before switch:', Math.round((10000 - waitTime)/1000), 'seconds remaining');
                                 }}
                             }} else {{
                                 syftboxReadyCount = 0;
+                                syftboxDiscoveredTime = null;  // Reset discovery time
                             }}
                         }} else {{
                             syftboxReadyCount = 0;
+                            syftboxDiscoveredTime = null;  // Reset discovery time
                             syftboxServerUrl = null;
                         }}
                     }} else if (syftboxServerUrl && currentStage === 'syftbox') {{
@@ -579,6 +593,7 @@ class ManagedWidget(SyftWidget):
                                 syftboxServerUrl = null;
                                 syftboxReadyCount = 0;
                                 syftboxFailureCount = 0;
+                                syftboxDiscoveredTime = null;  // Reset discovery time
                             }} else {{
                                 // Keep using SyftBox during temporary failures
                                 syftboxAvailable = true;
