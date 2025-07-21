@@ -256,8 +256,55 @@ class ManagedWidget(SyftWidget):
                     
                     if is_available:
                         consecutive_failures = 0
-                        if current_url != last_syftbox_url and self.current_stage != "syftbox":
-                            # New SyftBox server detected
+                        
+                        # Check version of running SyftBox app
+                        needs_update = False
+                        try:
+                            import requests
+                            version_response = requests.get(f"{current_url}/version", timeout=1)
+                            if version_response.status_code == 200:
+                                server_version = version_response.json().get("version", "unknown")
+                                current_version = self.syftbox_manager.get_current_version()
+                                
+                                if server_version != "unknown" and server_version != current_version:
+                                    print(f"SyftBox app version mismatch: server={server_version}, local={current_version}")
+                                    
+                                    # Compare versions - if local is newer, kill and remove the app
+                                    def compare_versions(v1, v2):
+                                        """Simple version comparison"""
+                                        try:
+                                            parts1 = [int(x) for x in v1.split('.')]
+                                            parts2 = [int(x) for x in v2.split('.')]
+                                            return parts1 > parts2
+                                        except:
+                                            return v1 > v2  # Fallback to string comparison
+                                    
+                                    if compare_versions(current_version, server_version):
+                                        print(f"Local version ({current_version}) is newer than SyftBox app ({server_version})")
+                                        needs_update = True
+                        except:
+                            pass
+                        
+                        if needs_update:
+                            print("Killing outdated SyftBox app...")
+                            # Try to kill the SyftBox app via API
+                            try:
+                                kill_response = requests.post(f"{current_url}/kill-syftbox", timeout=1)
+                            except:
+                                pass
+                            
+                            # Remove the app directory
+                            time.sleep(1)  # Give it a moment to die
+                            if self.syftbox_manager.remove_app():
+                                print("Removed outdated SyftBox app, will re-clone on next check")
+                                # Reset state
+                                last_syftbox_url = None
+                                if self.current_stage == "syftbox":
+                                    on_lost()
+                            else:
+                                print("Failed to remove outdated app")
+                        elif current_url != last_syftbox_url and self.current_stage != "syftbox":
+                            # New SyftBox server detected with correct version
                             print(f"SyftBox server detected at {current_url}!")
                             print(f"Current stage: {self.current_stage}, Thread server: {self.thread_server}")
                             last_syftbox_url = current_url
