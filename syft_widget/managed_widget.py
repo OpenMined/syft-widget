@@ -828,24 +828,3 @@ class ManagedWidget(SyftWidget):
         self.stop()
         return False
 
-
-import random
-
-class ManagedTimeWidget(ManagedWidget):
-    """Time widget with managed server transitions"""
-    
-    def __init__(self, **kwargs):
-        def get_time_snapshot():
-            timestamp = int(time.time())
-            formatted = time.strftime("%Y-%m-%d %H:%M:%S")
-            return {"timestamp": timestamp, "formatted": formatted}
-        
-        endpoints = {
-            "/time": get_time_snapshot
-        }
-        
-        # If no port specified, use a random one to avoid conflicts
-        if 'thread_server_port' not in kwargs:
-            kwargs['thread_server_port'] = random.randint(8100, 8199)
-        
-        super().__init__(endpoints=endpoints, **kwargs)
