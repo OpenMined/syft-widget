@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Widget JavaScript Test</title>
+    <style>
+        body { font-family: monospace; margin: 20px; }
+        .log { margin: 5px 0; }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+        #status { font-size: 18px; margin: 20px 0; padding: 10px; background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>Widget JavaScript Test</h1>
+    <div id="status">Starting tests...</div>
+    <div id="logs"></div>
+    
+    <script>
+        const logsDiv = document.getElementById('logs');
+        const statusDiv = document.getElementById('status');
+        
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logsDiv.appendChild(entry);
+            console.log(message);
+        }
+        
+        async function checkServer(url) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 500);
+                
+                const resp = await fetch(url + '/health', {
+                    signal: controller.signal,
+                    mode: 'cors'
+                });
+                
+                clearTimeout(timeoutId);
+                return resp.ok;
+            } catch(e) {
+                return false;
+            }
+        }
+        
+        async function checkSyftBoxDiscovery() {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 500);
+                
+                const resp = await fetch('http://localhost:62050', {
+                    signal: controller.signal,
+                    mode: 'cors'
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const port = data.main_server_port;
+                    if (port) {
+                        return `http://localhost:${port}`;
+                    }
+                }
+            } catch(e) {
+                // Discovery not available
+            }
+            return null;
+        }
+        
+        async function fetchData(url, endpoint) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 1000);
+                
+                const resp = await fetch(url + endpoint, {
+                    mode: 'cors',
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (resp.ok) {
+                    return await resp.json();
+                }
+            } catch(e) {
+                log(`Error fetching ${endpoint}: ${e.message}`, 'error');
+            }
+            return null;
+        }
+        
+        async function runTests() {
+            log('=== Starting Widget JavaScript Tests ===');
+            
+            // Test 1: Check thread server
+            log('Test 1: Checking thread server...');
+            const threadAlive = await checkServer('http://localhost:8001');
+            log(`Thread server on port 8001: ${threadAlive ? '✓ ALIVE' : '✗ DEAD'}`, threadAlive ? 'success' : 'error');
+            
+            // Test 2: Check SyftBox discovery
+            log('Test 2: Checking SyftBox discovery...');
+            const syftboxUrl = await checkSyftBoxDiscovery();
+            if (syftboxUrl) {
+                log(`✓ SyftBox discovered at: ${syftboxUrl}`, 'success');
+                
+                // Test 3: Check if SyftBox is alive
+                const syftboxAlive = await checkServer(syftboxUrl);
+                log(`SyftBox server: ${syftboxAlive ? '✓ ALIVE' : '✗ DEAD'}`, syftboxAlive ? 'success' : 'error');
+                
+                if (syftboxAlive) {
+                    // Test 4: Try to fetch data
+                    log('Test 4: Testing data endpoints...');
+                    
+                    const endpoints = ['/time/current', '/system/cpu', '/time/uptime', '/system/memory'];
+                    for (const endpoint of endpoints) {
+                        const data = await fetchData(syftboxUrl, endpoint);
+                        if (data) {
+                            log(`✓ ${endpoint}: ${JSON.stringify(data).substring(0, 50)}...`, 'success');
+                        } else {
+                            log(`✗ ${endpoint}: Failed to fetch`, 'error');
+                        }
+                    }
+                }
+            } else {
+                log('✗ No SyftBox discovered', 'error');
+            }
+            
+            // Update status
+            statusDiv.textContent = 'Tests complete. Monitoring for changes...';
+            
+            // Monitor for changes
+            let lastThreadState = threadAlive;
+            let lastSyftboxUrl = syftboxUrl;
+            let iteration = 0;
+            
+            setInterval(async () => {
+                iteration++;
+                
+                // Check thread server
+                const currentThreadAlive = await checkServer('http://localhost:8001');
+                if (currentThreadAlive !== lastThreadState) {
+                    log(`Thread server: ${currentThreadAlive ? '✓ STARTED' : '✗ STOPPED'}`, currentThreadAlive ? 'success' : 'error');
+                    lastThreadState = currentThreadAlive;
+                }
+                
+                // Check SyftBox
+                const currentSyftboxUrl = await checkSyftBoxDiscovery();
+                if (currentSyftboxUrl !== lastSyftboxUrl) {
+                    if (currentSyftboxUrl) {
+                        log(`SyftBox: ✓ DISCOVERED at ${currentSyftboxUrl}`, 'success');
+                        
+                        // Test data fetch
+                        const data = await fetchData(currentSyftboxUrl, '/time/current');
+                        if (data) {
+                            log(`✓ Successfully fetched data from new SyftBox`, 'success');
+                        }
+                    } else {
+                        log('SyftBox: ✗ LOST', 'error');
+                    }
+                    lastSyftboxUrl = currentSyftboxUrl;
+                }
+                
+                // Status update every 5 iterations
+                if (iteration % 5 === 0) {
+                    const status = [];
+                    if (currentThreadAlive) status.push('Thread:✓');
+                    if (currentSyftboxUrl) status.push('SyftBox:✓');
+                    statusDiv.textContent = `Monitoring... ${status.join(' | ') || '✗ No servers'}`;
+                }
+            }, 1000);
+        }
+        
+        // Run tests when page loads
+        runTests();
+    </script>
+</body>
+</html>

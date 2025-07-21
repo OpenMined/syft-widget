@@ -72,12 +72,14 @@ def create_server(endpoints=None):
     # Add custom endpoints if provided
     if endpoints:
         for path, handler in endpoints.items():
-            # Create an async wrapper for the sync handler
-            async def endpoint_wrapper(handler=handler):
-                return handler()
+            # Create a function factory to properly capture the handler
+            def create_endpoint(handler_func):
+                async def endpoint_wrapper():
+                    return handler_func()
+                return endpoint_wrapper
             
             # Register the endpoint
-            app.add_api_route(path, endpoint_wrapper, methods=["GET"])
+            app.add_api_route(path, create_endpoint(handler), methods=["GET"])
     
     return app
 
@@ -126,4 +128,10 @@ def run_server_in_thread(port: int = 8000, delay: float = 0, endpoints=None):
 
 
 # Make the app available at module level for uvicorn
-app = create_server()
+# When running as SyftBox app, include all registered endpoints
+try:
+    from .endpoints import get_all_endpoints
+    app = create_server(endpoints=get_all_endpoints())
+except ImportError:
+    # Fallback if endpoints module not available
+    app = create_server()

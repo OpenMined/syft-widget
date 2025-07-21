@@ -10,7 +10,8 @@
       "Bash(jupyter notebook)",
       "Bash(pip3 install:*)",
       "Bash(rm:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(open test_widget_js.html)"
     ],
     "deny": []
   }
