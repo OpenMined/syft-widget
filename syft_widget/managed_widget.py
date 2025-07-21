@@ -287,10 +287,16 @@ class ManagedWidget(SyftWidget):
                         # Check if app still exists
                         if not self.syftbox_manager.check_app_exists():
                             print("SyftBox app missing! Re-cloning...")
-                            if self.syftbox_manager.clone_app():
-                                print("App re-cloned successfully, waiting for SyftBox to start it...")
-                            else:
-                                print("Failed to re-clone app")
+                            
+                            # Clone in a separate thread to avoid blocking
+                            def clone_async():
+                                if self.syftbox_manager.clone_app():
+                                    print("App re-cloned successfully, waiting for SyftBox to start it...")
+                                else:
+                                    print("Failed to re-clone app")
+                            
+                            clone_thread = threading.Thread(target=clone_async, daemon=True)
+                            clone_thread.start()
                         else:
                             print("App exists but server not responding")
                         
