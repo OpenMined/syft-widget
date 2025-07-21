@@ -114,7 +114,7 @@ class SyftBoxManager:
     def get_syftbox_server_url(self) -> Optional[str]:
         """Get the SyftBox app server URL from discovery service"""
         try:
-            response = requests.get(f"http://localhost:{self.discovery_port}", timeout=1)
+            response = requests.get(f"http://localhost:{self.discovery_port}", timeout=0.5)
             if response.status_code == 200:
                 data = response.json()
                 port = data.get('main_server_port')
@@ -131,7 +131,7 @@ class SyftBoxManager:
             
         if self.syftbox_server_url:
             try:
-                response = requests.get(f"{self.syftbox_server_url}/health", timeout=1)
+                response = requests.get(f"{self.syftbox_server_url}/health", timeout=0.5)
                 return response.status_code == 200
             except requests.exceptions.RequestException:
                 # Connection failed, but don't clear the URL yet
@@ -141,7 +141,10 @@ class SyftBoxManager:
     
     def _monitor_syftbox(self, on_ready_callback: Optional[Callable] = None):
         """Monitor for SyftBox app to become available"""
+        just_cloned = False
+        import time as time_module
         while self._checking:
+            loop_start = time_module.time()
             current_version = self.get_current_version()
             
             if self.check_app_exists():
@@ -158,25 +161,22 @@ class SyftBoxManager:
                             print(f"App updated to version {current_version}")
                         else:
                             print("Failed to clone updated app")
-                            time.sleep(self.check_interval)
                             continue
                     else:
                         print("Failed to remove old app version")
-                        time.sleep(self.check_interval)
                         continue
                 
                 # Check if server is running
                 if self.check_syftbox_server():
                     # Double-check version via API if possible
                     try:
-                        version_response = requests.get(f"{self.syftbox_server_url}/version", timeout=1)
+                        version_response = requests.get(f"{self.syftbox_server_url}/version", timeout=0.5)
                         if version_response.status_code == 200:
                             server_version = version_response.json().get("version", "unknown")
                             if server_version != current_version:
                                 print(f"Running server version ({server_version}) differs from current ({current_version})")
                                 print("Server needs to be restarted with new version...")
                                 # The server will be restarted by SyftBox when we update the app
-                                time.sleep(self.check_interval)
                                 continue
                     except:
                         # Version endpoint might not exist, continue anyway
@@ -191,10 +191,15 @@ class SyftBoxManager:
                 # App doesn't exist, clone it
                 if self.clone_app():
                     print(f"App cloned (version {current_version}), waiting for SyftBox to start it...")
+                    just_cloned = True
                 else:
                     print("Failed to clone app, will retry...")
                     
-            time.sleep(self.check_interval)
+            # Don't sleep - let the timeout be our rate limiter
+            # The 0.5s timeout on HTTP requests provides natural pacing
+            loop_time = time_module.time() - loop_start
+            if loop_time > 1.0:
+                print(f"[SyftBoxManager] Loop took {loop_time:.2f}s")
     
     def start_monitoring(self, on_ready_callback: Optional[Callable] = None):
         """Start monitoring for SyftBox app"""

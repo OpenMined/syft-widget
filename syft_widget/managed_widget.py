@@ -58,7 +58,7 @@ class ManagedWidget(SyftWidget):
         # First check if thread server is already running
         import requests
         try:
-            response = requests.get(f"{self.server_url}/health", timeout=1)
+            response = requests.get(f"{self.server_url}/health", timeout=0.5)
             if response.status_code == 200:
                 print(f"Thread server already running on {self.server_url}")
                 self.current_stage = "thread"
@@ -261,7 +261,7 @@ class ManagedWidget(SyftWidget):
                         needs_update = False
                         try:
                             import requests
-                            version_response = requests.get(f"{current_url}/version", timeout=1)
+                            version_response = requests.get(f"{current_url}/version", timeout=0.5)
                             if version_response.status_code == 200:
                                 server_version = version_response.json().get("version", "unknown")
                                 current_version = self.syftbox_manager.get_current_version()
@@ -289,7 +289,7 @@ class ManagedWidget(SyftWidget):
                             print("Killing outdated SyftBox app...")
                             # Try to kill the SyftBox app via API
                             try:
-                                kill_response = requests.post(f"{current_url}/kill-syftbox", timeout=1)
+                                kill_response = requests.post(f"{current_url}/kill-syftbox", timeout=0.5)
                             except:
                                 pass
                             
@@ -545,11 +545,19 @@ class ManagedWidget(SyftWidget):
                 
                 async function checkSyftBoxDiscovery() {{
                     try {{
+                        // Add timeout to prevent hanging
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 500); // 500ms timeout
+                        
                         const response = await fetch('http://localhost:62050', {{
                             method: 'GET',
                             mode: 'cors',
-                            cache: 'no-cache'
+                            cache: 'no-cache',
+                            signal: controller.signal
                         }});
+                        
+                        clearTimeout(timeoutId);
+                        
                         if (response.ok) {{
                             const data = await response.json();
                             const port = data.main_server_port;
@@ -558,7 +566,7 @@ class ManagedWidget(SyftWidget):
                             }}
                         }}
                     }} catch (e) {{
-                        // Discovery not available
+                        // Discovery not available or timed out
                     }}
                     return null;
                 }}
@@ -573,7 +581,8 @@ class ManagedWidget(SyftWidget):
                     let newStage = currentStage;
                     
                     // Check for SyftBox server first
-                    if (!syftboxServerUrl || currentStage !== 'syftbox') {{
+                    // Only check discovery if we're not already in syftbox mode or transitioning
+                    if (!syftboxServerUrl && currentStage !== 'syftbox' && !transitioningToSyftbox) {{
                         syftboxServerUrl = await checkSyftBoxDiscovery();
                     }}
                     
