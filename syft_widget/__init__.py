@@ -1,4 +1,4 @@
-from .widget import SyftWidget, HelloWidget, TimeWidget
+from .widget import SyftWidget, TimeWidget
 from .interactive_widget import InteractiveWidget
 from .managed_widget import ManagedWidget, ManagedTimeWidget
 from .server import create_server, run_server_in_thread
@@ -9,7 +9,7 @@ from .endpoints import get_all_endpoints
 
 __version__ = "0.2.0"
 __all__ = [
-    "SyftWidget", "HelloWidget", "TimeWidget", "InteractiveWidget",
+    "SyftWidget", "TimeWidget", "InteractiveWidget",
     "ManagedWidget", "ManagedTimeWidget", "SyftBoxManager",
     "create_server", "run_server_in_thread",
     "APIDisplay", "TimeDisplay", "CPUDisplay", "SystemDashboard",

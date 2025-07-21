@@ -23,7 +23,6 @@ class SyftWidget:
         self.is_server_available = False
         self.checking = True
         self.widget = None
-        self._check_thread = None
     
     def _create_snapshots(self):
         """Create snapshots by calling the endpoint functions and caching results"""
@@ -34,10 +33,6 @@ class SyftWidget:
             except Exception as e:
                 self.snapshot_cache[endpoint] = None
         
-    def _check_server_availability(self):
-        # No longer needed - JavaScript handles polling
-        pass
-    
     def _get_data(self, endpoint: str) -> Any:
         if self.is_server_available:
             try:
@@ -50,14 +45,9 @@ class SyftWidget:
         # Fall back to cached snapshot
         return self.snapshot_cache.get(endpoint)
     
-    def start(self):
-        self._check_thread = threading.Thread(target=self._check_server_availability, daemon=True)
-        self._check_thread.start()
-    
     def stop(self):
+        """Stop the widget (for compatibility)"""
         self.checking = False
-        if self._check_thread:
-            self._check_thread.join()
 
 
 class TimeWidget(SyftWidget):
@@ -220,7 +210,3 @@ class TimeWidget(SyftWidget):
     def display(self):
         self._update_display()
         return self.iframe
-
-
-# Keep HelloWidget for backward compatibility
-HelloWidget = TimeWidget

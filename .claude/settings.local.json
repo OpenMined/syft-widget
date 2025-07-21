@@ -11,7 +11,9 @@
       "Bash(pip3 install:*)",
       "Bash(rm:*)",
       "Bash(grep:*)",
-      "Bash(open test_widget_js.html)"
+      "Bash(open test_widget_js.html)",
+      "Bash(chmod:*)",
+      "Bash(./force_syftbox_update.sh:*)"
     ],
     "deny": []
   }
