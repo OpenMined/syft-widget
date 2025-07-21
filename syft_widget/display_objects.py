@@ -84,23 +84,54 @@ class APIDisplay:
                 }}
             }}
             
+            async function checkSyftBoxDiscovery() {{
+                try {{
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 500);
+                    
+                    const resp = await fetch('http://localhost:62050', {{
+                        signal: controller.signal,
+                        mode: 'cors'
+                    }});
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (resp.ok) {{
+                        const data = await resp.json();
+                        const port = data.main_server_port;
+                        if (port) {{
+                            return `http://localhost:${{port}}`;
+                        }}
+                    }}
+                }} catch(e) {{
+                    // Discovery not available
+                }}
+                return null;
+            }}
+            
             async function updateDisplay() {{
                 // Try different server ports
                 let baseUrl = null;
                 let serverType = "checkpoint";
-                const ports = [
-                    {{port: 8001, type: "thread"}},
-                    {{port: 8000, type: "thread"}},
-                    {{port: 8002, type: "syftbox"}}
-                ];
                 
-                for (const server of ports) {{
-                    if (await checkServer(`http://localhost:${{server.port}}`)) {{
-                        baseUrl = `http://localhost:${{server.port}}`;
-                        serverType = server.type;
-                        currentPort = server.port;
-                        console.log(`[APIDisplay ${{displayId}}] Found ${{server.type}} server at port ${{server.port}}`);
-                        break;
+                // First check for SyftBox via discovery
+                const syftboxUrl = await checkSyftBoxDiscovery();
+                if (syftboxUrl && await checkServer(syftboxUrl)) {{
+                    baseUrl = syftboxUrl;
+                    serverType = "syftbox";
+                    currentPort = parseInt(syftboxUrl.split(':').pop());
+                    console.log(`[APIDisplay ${{displayId}}] Found SyftBox server at ${{syftboxUrl}}`);
+                }} else {{
+                    // Try thread server ports
+                    const threadPorts = [8001, 8000];
+                    for (const port of threadPorts) {{
+                        if (await checkServer(`http://localhost:${{port}}`)) {{
+                            baseUrl = `http://localhost:${{port}}`;
+                            serverType = "thread";
+                            currentPort = port;
+                            console.log(`[APIDisplay ${{displayId}}] Found thread server at port ${{port}}`);
+                            break;
+                        }}
                     }}
                 }}
                 
@@ -121,7 +152,16 @@ class APIDisplay:
                 if (baseUrl) {{
                     for (const endpoint of endpoints) {{
                         try {{
-                            const resp = await fetch(baseUrl + endpoint, {{ mode: 'cors' }});
+                            const controller = new AbortController();
+                            const timeoutId = setTimeout(() => controller.abort(), 1000);
+                            
+                            const resp = await fetch(baseUrl + endpoint, {{ 
+                                mode: 'cors',
+                                signal: controller.signal
+                            }});
+                            
+                            clearTimeout(timeoutId);
+                            
                             if (resp.ok) {{
                                 const data = await resp.json();
                                 if (JSON.stringify(data) !== JSON.stringify(currentData[endpoint])) {{
@@ -131,13 +171,17 @@ class APIDisplay:
                                 }}
                             }}
                         }} catch(e) {{
-                            console.error(`[APIDisplay ${{displayId}}] Error fetching ${{endpoint}}:`, e);
+                            // On error, keep using last known data
+                            console.debug(`[APIDisplay ${{displayId}}] Error fetching ${{endpoint}} (will retry):`, e.message);
                         }}
                     }}
                 }}
                 
-                // Update display if data changed or server type changed
-                if (dataChanged || serverType !== currentServerType) {{
+                // Always update display if server type changed
+                const serverTypeChanged = serverType !== currentServerType;
+                
+                // Update display if data changed or server type changed or we're in checkpoint mode
+                if (dataChanged || serverTypeChanged || serverType === 'checkpoint') {{
                     const element = document.getElementById(displayId);
                     if (element) {{
                         {self.get_update_script()}
