@@ -203,7 +203,9 @@ class ManagedWidget(SyftWidget):
             
             # Wait a bit before stopping thread server to ensure smooth transition
             def delayed_stop():
-                time.sleep(2)  # Give frontend time to switch
+                # Wait 10 seconds for frontend to switch + 5 seconds extra = 15 seconds total
+                print("Waiting 15 seconds before stopping thread server (10s for frontend + 5s buffer)...")
+                time.sleep(15)
                 print("Stopping thread server after transition delay...")
                 self._stop_thread_server()
             
