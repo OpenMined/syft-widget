@@ -121,7 +121,7 @@ class ManagedWidget(SyftWidget):
             time.sleep(0.5)  # Much shorter delay for faster recovery
             
             try:
-                self.thread_server = run_server_in_thread(port=self.thread_server_port, delay=0)
+                self.thread_server = run_server_in_thread(port=self.thread_server_port, delay=0, endpoints=self.endpoints)
                 self.current_stage = "thread"
                 print(f"Thread server started on port {self.thread_server_port}")
                 # Store the process for later cleanup

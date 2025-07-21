@@ -5,7 +5,7 @@ import threading
 import time
 
 
-def create_server():
+def create_server(endpoints=None):
     app = FastAPI()
     
     # Add CORS middleware to allow JavaScript access
@@ -69,13 +69,23 @@ def create_server():
         thread.start()
         return {"message": "SyftBox app shutting down..."}
     
+    # Add custom endpoints if provided
+    if endpoints:
+        for path, handler in endpoints.items():
+            # Create an async wrapper for the sync handler
+            async def endpoint_wrapper(handler=handler):
+                return handler()
+            
+            # Register the endpoint
+            app.add_api_route(path, endpoint_wrapper, methods=["GET"])
+    
     return app
 
 
 import multiprocessing
 from .process_tracker import track_process, untrack_process, kill_processes_on_port
 
-def _run_server_process(port: int):
+def _run_server_process(port: int, endpoints=None):
     """Top-level function for multiprocessing"""
     # Register signal handlers to clean up on exit
     import signal
@@ -89,10 +99,10 @@ def _run_server_process(port: int):
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
     
-    app = create_server()
+    app = create_server(endpoints=endpoints)
     uvicorn.run(app, host="0.0.0.0", port=port, log_level="error")
 
-def run_server_in_thread(port: int = 8000, delay: float = 0):
+def run_server_in_thread(port: int = 8000, delay: float = 0, endpoints=None):
     if delay > 0:
         time.sleep(delay)
     
@@ -103,7 +113,7 @@ def run_server_in_thread(port: int = 8000, delay: float = 0):
     # Use a process instead of thread so we can actually kill it
     process = multiprocessing.Process(
         target=_run_server_process, 
-        args=(port,),
+        args=(port, endpoints),
         daemon=True
     )
     process.start()
