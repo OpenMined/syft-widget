@@ -13,7 +13,8 @@
       "Bash(grep:*)",
       "Bash(open test_widget_js.html)",
       "Bash(chmod:*)",
-      "Bash(./force_syftbox_update.sh:*)"
+      "Bash(./force_syftbox_update.sh:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

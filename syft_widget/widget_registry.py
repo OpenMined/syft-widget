@@ -1,6 +1,5 @@
 """Registry for managing the shared widget infrastructure"""
 from typing import Optional
-from .managed_widget import ManagedWidget
 from .endpoints import get_all_endpoints
 
 
@@ -24,6 +23,9 @@ class WidgetRegistry:
     def start(self, thread_port: int = 8001, syftbox_port: int = 8002):
         """Start the shared infrastructure if not already running"""
         if not self._widget:
+            # Lazy import to avoid circular dependency
+            from .managed_widget import ManagedWidget
+            
             # Get all registered endpoints
             endpoints = get_all_endpoints()
             
