@@ -78,6 +78,8 @@ class ManagedWidget(SyftWidget):
     
     def _start_thread_server(self):
         """Start the Python thread server with a delay to simulate startup time"""
+        print(f"_start_thread_server called. Current stage: {self.current_stage}, thread_server: {self.thread_server}")
+        
         if self.thread_server:
             print("Thread server already running")
             return
@@ -137,6 +139,8 @@ class ManagedWidget(SyftWidget):
         """Stop the thread server"""
         from .process_tracker import untrack_process, kill_processes_on_port
         
+        print(f"_stop_thread_server called. Current thread_server: {self.thread_server}")
+        
         if self.thread_server and hasattr(self.thread_server, 'is_alive'):
             print(f"Stopping thread server on port {self.thread_server_port}...")
             try:
@@ -164,9 +168,12 @@ class ManagedWidget(SyftWidget):
                 print(f"Error stopping thread server: {e}")
             finally:
                 self.thread_server = None
+        else:
+            print("No thread server to stop")
         
         # Always try to kill by port to catch any orphaned processes
         if self.thread_server_port:
+            print(f"Killing any remaining processes on port {self.thread_server_port}")
             kill_processes_on_port(self.thread_server_port)
         
         self.thread_server = None
@@ -250,6 +257,7 @@ class ManagedWidget(SyftWidget):
                         if current_url != last_syftbox_url and self.current_stage != "syftbox":
                             # New SyftBox server detected
                             print(f"SyftBox server detected at {current_url}!")
+                            print(f"Current stage: {self.current_stage}, Thread server: {self.thread_server}")
                             last_syftbox_url = current_url
                             on_ready(current_url)
                     else:
@@ -501,6 +509,8 @@ class ManagedWidget(SyftWidget):
                 }}
                 
                 let syftboxReadyCount = 0;
+                let syftboxFailureCount = 0;
+                let transitioningToSyftbox = false;
                 
                 async function updateDisplay() {{
                     let data = null;
@@ -515,7 +525,7 @@ class ManagedWidget(SyftWidget):
                     let threadAvailable = false;
                     
                     // Check both servers
-                    if (syftboxServerUrl && currentStage !== 'syftbox') {{
+                    if (syftboxServerUrl && currentStage !== 'syftbox' && !transitioningToSyftbox) {{
                         // For SyftBox, require both health check AND successful data fetch
                         const healthOk = await checkServer(syftboxServerUrl);
                         if (healthOk) {{
@@ -528,7 +538,14 @@ class ManagedWidget(SyftWidget):
                                     data = testData;
                                     newStage = 'syftbox';
                                     stages.syftbox.url = syftboxServerUrl;
+                                    transitioningToSyftbox = true;  // Lock in the transition
                                     console.log('SyftBox server verified ready after', syftboxReadyCount, 'checks');
+                                    
+                                    // Clear the transition lock after a delay
+                                    setTimeout(() => {{
+                                        transitioningToSyftbox = false;
+                                        syftboxFailureCount = 0;  // Reset failure count
+                                    }}, 5000);  // 5 seconds should be enough for backend to kill thread
                                 }}
                             }} else {{
                                 syftboxReadyCount = 0;
@@ -538,22 +555,40 @@ class ManagedWidget(SyftWidget):
                             syftboxServerUrl = null;
                         }}
                     }} else if (syftboxServerUrl && currentStage === 'syftbox') {{
-                        // Already on SyftBox, just check if still available
+                        // Already on SyftBox, check if still available
                         syftboxAvailable = await checkServer(syftboxServerUrl);
                         if (syftboxAvailable) {{
                             data = await getData(syftboxServerUrl);
-                            if (!data) {{
-                                syftboxAvailable = false;
+                            if (data) {{
+                                syftboxFailureCount = 0;  // Reset on success
+                                syftboxAvailable = true;  // Stay on SyftBox
+                            }} else {{
+                                syftboxFailureCount++;
+                                // Only mark as unavailable after multiple failures
+                                if (syftboxFailureCount >= 3) {{
+                                    syftboxAvailable = false;
+                                }} else {{
+                                    // Use last successful data while we wait
+                                    syftboxAvailable = true;
+                                    data = lastSuccessfulData;
+                                }}
                             }}
-                        }}
-                        if (!syftboxAvailable) {{
-                            syftboxServerUrl = null;
-                            syftboxReadyCount = 0;
+                        }} else {{
+                            syftboxFailureCount++;
+                            if (syftboxFailureCount >= 3) {{
+                                syftboxServerUrl = null;
+                                syftboxReadyCount = 0;
+                                syftboxFailureCount = 0;
+                            }} else {{
+                                // Keep using SyftBox during temporary failures
+                                syftboxAvailable = true;
+                                data = lastSuccessfulData;
+                            }}
                         }}
                     }}
                     
-                    // If SyftBox not available, check thread server
-                    if (!syftboxAvailable) {{
+                    // If SyftBox not available and not transitioning, check thread server
+                    if (!syftboxAvailable && !transitioningToSyftbox) {{
                         const foundThreadUrl = await findThreadServer();
                         if (foundThreadUrl) {{
                             threadServerUrl = foundThreadUrl;
