@@ -19,8 +19,8 @@ class ManagedWidget(SyftWidget):
     
     def __init__(
         self,
-        app_name: Optional[str] = None,
-        repo_url: Optional[str] = None,
+        app_name: str = "syft-widget",
+        repo_url: str = "https://github.com/OpenMined/syft-widget",
         thread_server_port: int = 8001,
         discovery_port: int = 62050,
         endpoints: Optional[Dict[str, Callable[[], Any]]] = None,

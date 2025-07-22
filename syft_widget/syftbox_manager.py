@@ -12,8 +12,8 @@ from typing import Optional, Callable
 class SyftBoxManager:
     def __init__(
         self, 
-        app_name: Optional[str] = None,
-        repo_url: Optional[str] = None,
+        app_name: str = "syft-widget",
+        repo_url: str = "https://github.com/OpenMined/syft-widget",
         discovery_port: int = 62050,
         check_interval: float = 1.0
     ):
@@ -40,7 +40,7 @@ class SyftBoxManager:
     
     def check_app_exists(self) -> bool:
         """Check if the app already exists in SyftBox/apps"""
-        if not self.syftbox_path or not self.app_path:
+        if not self.syftbox_path:
             return False
         return self.app_path.exists()
     
@@ -147,7 +147,7 @@ class SyftBoxManager:
             loop_start = time_module.time()
             current_version = self.get_current_version()
             
-            if self.app_path and self.check_app_exists():
+            if self.check_app_exists():
                 # App exists, check version
                 app_version = self.get_app_version()
                 
@@ -187,21 +187,13 @@ class SyftBoxManager:
                     if on_ready_callback:
                         on_ready_callback(self.syftbox_server_url)
                     break
-            elif self.app_path:
+            else:
                 # App doesn't exist, clone it
                 if self.clone_app():
                     print(f"App cloned (version {current_version}), waiting for SyftBox to start it...")
                     just_cloned = True
                 else:
                     print("Failed to clone app, will retry...")
-            else:
-                # No app path, just monitor for SyftBox server
-                if self.check_syftbox_server():
-                    self.is_syftbox_running = True
-                    print(f"SyftBox server is running at {self.syftbox_server_url}")
-                    if on_ready_callback:
-                        on_ready_callback(self.syftbox_server_url)
-                    break
                     
             # Don't sleep - let the timeout be our rate limiter
             # The 0.5s timeout on HTTP requests provides natural pacing
@@ -216,10 +208,7 @@ class SyftBoxManager:
             print("Warning: Could not determine SyftBox path")
             return False
             
-        if self.app_name:
-            self.app_path = self.syftbox_path / "apps" / self.app_name
-        else:
-            self.app_path = None
+        self.app_path = self.syftbox_path / "apps" / self.app_name
         
         self._checking = True
         self._check_thread = threading.Thread(
