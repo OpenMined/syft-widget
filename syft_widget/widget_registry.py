@@ -52,13 +52,8 @@ class WidgetRegistry:
         if not self._widget:
             return None
             
-        # Check which stage we're in
-        if hasattr(self._widget, 'syftbox_manager') and self._widget.syftbox_manager:
-            if self._widget.syftbox_manager.is_syftbox_running:
-                return self._widget.syftbox_manager.syftbox_server_url
-        
-        # Default to thread server
-        return f"http://localhost:{self._widget.thread_server_port}"
+        # Return the widget's current server URL which is updated when ports change
+        return self._widget.server_url
     
     def stop(self):
         """Stop the infrastructure"""

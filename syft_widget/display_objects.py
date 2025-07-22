@@ -122,8 +122,11 @@ class APIDisplay:
                     currentPort = parseInt(syftboxUrl.split(':').pop());
                     console.log(`[APIDisplay ${{displayId}}] Found SyftBox server at ${{syftboxUrl}}`);
                 }} else {{
-                    // Try thread server ports
-                    const threadPorts = [8001, 8000];
+                    // Try thread server ports - check a range in case ports are in use
+                    const threadPorts = [];
+                    for (let p = 8000; p <= 8010; p++) {{
+                        threadPorts.push(p);
+                    }}
                     for (const port of threadPorts) {{
                         if (await checkServer(`http://localhost:${{port}}`)) {{
                             baseUrl = `http://localhost:${{port}}`;

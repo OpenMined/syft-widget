@@ -43,6 +43,7 @@ class ManagedWidget(SyftWidget):
         self.widget_id = f"syft-widget-{uuid.uuid4().hex[:8]}"
         self.iframe = widgets.HTML()
         self._stop_monitoring = False
+        self._starting_thread_server = False
         
         # Get initial mock data from endpoints
         self.initial_data = self._get_initial_data()
@@ -83,6 +84,12 @@ class ManagedWidget(SyftWidget):
         if self.thread_server:
             print("Thread server already running")
             return
+        
+        if self._starting_thread_server:
+            print("Thread server already being started")
+            return
+        
+        self._starting_thread_server = True
         
         # Check if port is already in use and try to kill existing process
         import socket
@@ -130,6 +137,8 @@ class ManagedWidget(SyftWidget):
             except Exception as e:
                 print(f"Failed to start thread server: {e}")
                 self.current_stage = "checkpoint"
+            finally:
+                self._starting_thread_server = False
         
         # Start in a separate thread so it doesn't block
         start_thread = threading.Thread(target=delayed_start, daemon=True)
