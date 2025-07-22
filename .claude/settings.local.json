@@ -15,7 +15,9 @@
       "Bash(chmod:*)",
       "Bash(./force_syftbox_update.sh:*)",
       "Bash(find:*)",
-      "Bash(python -m pytest tests/ -v)"
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(cp:*)",
+      "Bash(python:*)"
     ],
     "deny": []
   }

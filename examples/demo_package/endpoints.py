@@ -2,7 +2,7 @@
 
 import time
 import random
-from .endpoints import register_endpoint
+from syft_widget import register_endpoint
 
 
 # Time API endpoints

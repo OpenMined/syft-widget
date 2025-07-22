@@ -30,10 +30,5 @@ def get_all_endpoints() -> Dict[str, Callable[[], Any]]:
     return ENDPOINT_REGISTRY.copy()
 
 
-# Import demo endpoints to register them
-# This ensures they're available when the module is imported
-try:
-    from . import demo_endpoints
-except ImportError:
-    # Demo endpoints are optional
-    pass
+# Demo endpoints have been moved to examples/demo_package/
+# No demo endpoints imported here - this is now a clean library

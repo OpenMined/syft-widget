@@ -1,6 +1,6 @@
 """Demo widgets showcasing the syft-widget library capabilities"""
 
-from .display_objects import APIDisplay
+from syft_widget import APIDisplay
 
 
 class TimeDisplay(APIDisplay):
@@ -295,6 +295,73 @@ class SystemDashboard(APIDisplay):
                         <div>Latency: ${network.latency_ms || '...'} ms</div>
                     </div>
                 </div>
+            </div>
+        </div>
+        `;
+        """
+
+
+class NetworkMonitor(APIDisplay):
+    """Custom network monitor widget"""
+    
+    def __init__(self):
+        super().__init__(endpoints=["/network/status"])
+    
+    def render_content(self, data, server_type="checkpoint"):
+        net = data.get("/network/status", {})
+        status = "🟢 Connected" if net.get("connected") else "🔴 Disconnected"
+        
+        # Server type badge
+        badge_color = {"checkpoint": "#6c757d", "thread": "#28a745", "syftbox": "#007bff"}.get(server_type, "#6c757d")
+        server_label = {"checkpoint": "📁 Checkpoint", "thread": "🧵 Thread Server", "syftbox": "📦 SyftBox"}.get(server_type, server_type)
+        
+        return f"""
+        <div style="font-family: -apple-system, sans-serif; padding: 20px; background: #e8f5e9; border-radius: 8px; position: relative;">
+            <div style="position: absolute; top: 10px; right: 10px; background: {badge_color}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                {server_label}
+            </div>
+            
+            <h3 style="margin: 0 0 15px 0;">🌐 Network Monitor</h3>
+            
+            <div style="font-size: 18px; margin-bottom: 10px;">{status}</div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
+                <div><strong>Interface:</strong> {net.get("interface", "...")}</div>
+                <div><strong>IP:</strong> {net.get("ip_address", "...")}</div>
+                <div><strong>Download:</strong> {net.get("download_mbps", "...")} Mbps</div>
+                <div><strong>Upload:</strong> {net.get("upload_mbps", "...")} Mbps</div>
+                <div><strong>Latency:</strong> {net.get("latency_ms", "...")} ms</div>
+            </div>
+        </div>
+        """
+    
+    def get_update_script(self):
+        return """
+        const net = currentData['/network/status'] || {};
+        const status = net.connected ? "🟢 Connected" : "🔴 Disconnected";
+        
+        // Server type badge
+        const badgeColors = {checkpoint: "#6c757d", thread: "#28a745", syftbox: "#007bff"};
+        const serverLabels = {checkpoint: "📁 Checkpoint", thread: "🧵 Thread Server", syftbox: "📦 SyftBox"};
+        const badgeColor = badgeColors[currentServerType] || "#6c757d";
+        const serverLabel = serverLabels[currentServerType] || currentServerType;
+        
+        element.innerHTML = `
+        <div style="font-family: -apple-system, sans-serif; padding: 20px; background: #e8f5e9; border-radius: 8px; position: relative;">
+            <div style="position: absolute; top: 10px; right: 10px; background: ${badgeColor}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                ${serverLabel}
+            </div>
+            
+            <h3 style="margin: 0 0 15px 0;">🌐 Network Monitor</h3>
+            
+            <div style="font-size: 18px; margin-bottom: 10px;">${status}</div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
+                <div><strong>Interface:</strong> ${net.interface || '...'}</div>
+                <div><strong>IP:</strong> ${net.ip_address || '...'}</div>
+                <div><strong>Download:</strong> ${net.download_mbps || '...'} Mbps</div>
+                <div><strong>Upload:</strong> ${net.upload_mbps || '...'} Mbps</div>
+                <div><strong>Latency:</strong> ${net.latency_ms || '...'} ms</div>
             </div>
         </div>
         `;

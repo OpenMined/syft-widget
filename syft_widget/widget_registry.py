@@ -20,8 +20,14 @@ class WidgetRegistry:
         self._initialized = True
         self._widget = None
     
-    def start(self, thread_port: int = 8001, syftbox_port: int = 8002):
-        """Start the shared infrastructure if not already running"""
+    def start(self, thread_port: int = 8001, syftbox_port: int = 8002, mode: str = "auto"):
+        """Start the shared infrastructure if not already running
+        
+        Args:
+            thread_port: Port for the thread server
+            syftbox_port: Port for the SyftBox app (deprecated, auto-discovered)
+            mode: "development" (no SyftBox), "production" (full), or "auto" (default)
+        """
         if not self._widget:
             # Lazy import to avoid circular dependency
             from .managed_widget import ManagedWidget
@@ -37,15 +43,18 @@ class WidgetRegistry:
             # We'll create it but not display it
             self._widget = ManagedWidget(
                 thread_server_port=thread_port,
-                endpoints=endpoints
+                endpoints=endpoints,
+                mode=mode
             )
             
             # Override display to prevent showing the widget
             self._widget.display = lambda: None
             
             print(f"\nInfrastructure started:")
+            print(f"  Mode: {mode}")
             print(f"  Thread server port: {thread_port}")
-            print(f"  SyftBox port: {syftbox_port}")
+            if mode != "development":
+                print(f"  SyftBox: auto-discovery enabled")
     
     def get_base_url(self) -> Optional[str]:
         """Get the current active server URL"""
@@ -72,9 +81,18 @@ def get_current_registry():
     return _registry
 
 
-def start_infrastructure(thread_port: int = 8001, syftbox_port: int = 8002):
-    """Convenience function to start the infrastructure"""
-    _registry.start(thread_port, syftbox_port)
+def start_infrastructure(thread_port: int = 8001, syftbox_port: int = 8002, mode: str = "auto"):
+    """Convenience function to start the infrastructure
+    
+    Args:
+        thread_port: Port for the thread server (default: 8001)
+        syftbox_port: Deprecated, kept for compatibility
+        mode: "development", "production", or "auto" (default)
+            - development: Only checkpoint and thread server (no SyftBox)
+            - production: Full lifecycle with SyftBox
+            - auto: Detect based on environment
+    """
+    _registry.start(thread_port, syftbox_port, mode)
 
 
 def stop_infrastructure():

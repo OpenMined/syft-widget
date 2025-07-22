@@ -24,6 +24,7 @@ class ManagedWidget(SyftWidget):
         thread_server_port: int = 8001,
         discovery_port: int = 62050,
         endpoints: Optional[Dict[str, Callable[[], Any]]] = None,
+        mode: str = "auto",
         **kwargs
     ):
         # Initialize with thread server URL first
@@ -44,15 +45,22 @@ class ManagedWidget(SyftWidget):
         self.iframe = widgets.HTML()
         self._stop_monitoring = False
         self._starting_thread_server = False
+        self.mode = mode
         
         # Get initial mock data from endpoints
         self.initial_data = self._get_initial_data()
         
-        # Start monitoring for SyftBox
-        self._start_syftbox_monitoring()
-        
-        # Only start thread server if SyftBox isn't already available
-        self._check_and_start_thread_server()
+        if mode == "development":
+            # Development mode: only use checkpoint and thread server
+            print("Starting in development mode (no SyftBox integration)")
+            self._start_thread_server()
+        else:
+            # Auto/production mode: full lifecycle
+            # Start monitoring for SyftBox
+            self._start_syftbox_monitoring()
+            
+            # Only start thread server if SyftBox isn't already available
+            self._check_and_start_thread_server()
     
     def _check_and_start_thread_server(self):
         """Check if we need to start the thread server"""
@@ -192,6 +200,10 @@ class ManagedWidget(SyftWidget):
     
     def _start_syftbox_monitoring(self):
         """Start monitoring for SyftBox app"""
+        if self.mode == "development":
+            # Skip SyftBox in development mode
+            return
+            
         self.syftbox_manager = SyftBoxManager(
             app_name=self.app_name,
             repo_url=self.repo_url,
