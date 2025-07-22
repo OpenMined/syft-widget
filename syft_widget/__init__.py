@@ -8,16 +8,7 @@ def __getattr__(name):
     
     # Map of attribute names to their modules
     import_map = {
-        # Core classes
-        "SyftWidget": ("widget", "SyftWidget"),
-        "ManagedWidget": ("managed_widget", "ManagedWidget"),
-        "SyftBoxManager": ("syftbox_manager", "SyftBoxManager"),
-        
-        # Server functions
-        "create_server": ("server", "create_server"),
-        "run_server_in_thread": ("server", "run_server_in_thread"),
-        
-        # Display classes
+        # Display classes (main public API)
         "APIDisplay": ("display_objects", "APIDisplay"),
         "TimeDisplay": ("demo_widgets", "TimeDisplay"),
         "CPUDisplay": ("demo_widgets", "CPUDisplay"),
@@ -27,9 +18,9 @@ def __getattr__(name):
         "start_infrastructure": ("widget_registry", "start_infrastructure"),
         "stop_infrastructure": ("widget_registry", "stop_infrastructure"),
         
-        # Endpoint functions
-        "get_all_endpoints": ("endpoints", "get_all_endpoints"),
+        # Advanced API (for creating custom endpoints)
         "register_endpoint": ("endpoints", "register_endpoint"),
+        "get_all_endpoints": ("endpoints", "get_all_endpoints"),
     }
     
     if name in import_map:
@@ -42,9 +33,10 @@ def __getattr__(name):
 
 
 __all__ = [
-    "SyftWidget", "ManagedWidget", "SyftBoxManager",
-    "create_server", "run_server_in_thread",
+    # Display classes (main public API)
     "APIDisplay", "TimeDisplay", "CPUDisplay", "SystemDashboard",
-    "start_infrastructure", "stop_infrastructure", 
-    "get_all_endpoints", "register_endpoint"
+    # Infrastructure management
+    "start_infrastructure", "stop_infrastructure",
+    # Advanced API
+    "register_endpoint", "get_all_endpoints"
 ]

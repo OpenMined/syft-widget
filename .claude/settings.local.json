@@ -14,7 +14,8 @@
       "Bash(open test_widget_js.html)",
       "Bash(chmod:*)",
       "Bash(./force_syftbox_update.sh:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(python -m pytest tests/ -v)"
     ],
     "deny": []
   }

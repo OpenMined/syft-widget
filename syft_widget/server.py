@@ -29,16 +29,6 @@ def create_server(endpoints=None):
         except:
             return {"version": "unknown"}
     
-    @app.get("/time")
-    async def get_time():
-        return {"timestamp": int(time.time()), "formatted": time.strftime("%Y-%m-%d %H:%M:%S")}
-    
-    @app.post("/action")
-    async def perform_action(data: dict = {}):
-        # Simulate some server-side action
-        timestamp = data.get("timestamp", "No timestamp provided")
-        return {"message": f"Action performed successfully at {timestamp}", "server_time": time.strftime("%Y-%m-%d %H:%M:%S")}
-    
     @app.post("/shutdown")
     async def shutdown():
         """Endpoint to shutdown the server"""
@@ -85,7 +75,7 @@ def create_server(endpoints=None):
 
 
 import multiprocessing
-from .process_tracker import track_process, untrack_process, kill_processes_on_port
+from .process_tracker import kill_processes_on_port
 
 def _run_server_process(port: int, endpoints=None):
     """Top-level function for multiprocessing"""
@@ -119,10 +109,7 @@ def run_server_in_thread(port: int = 8000, delay: float = 0, endpoints=None):
         daemon=True
     )
     process.start()
-    
-    # Track the process
-    track_process(process.pid)
-    print(f"Started and tracking server process {process.pid} on port {port}")
+    print(f"Started server process {process.pid} on port {port}")
     
     return process
 

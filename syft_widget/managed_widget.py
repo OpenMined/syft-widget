@@ -19,8 +19,8 @@ class ManagedWidget(SyftWidget):
     
     def __init__(
         self,
-        app_name: str = "syft-widget",
-        repo_url: str = "https://github.com/OpenMined/syft-widget",
+        app_name: Optional[str] = None,
+        repo_url: Optional[str] = None,
         thread_server_port: int = 8001,
         discovery_port: int = 62050,
         endpoints: Optional[Dict[str, Callable[[], Any]]] = None,
@@ -44,8 +44,8 @@ class ManagedWidget(SyftWidget):
         self.iframe = widgets.HTML()
         self._stop_monitoring = False
         
-        # Create snapshots
-        self._create_snapshots()
+        # Get initial mock data from endpoints
+        self.initial_data = self._get_initial_data()
         
         # Start monitoring for SyftBox
         self._start_syftbox_monitoring()
@@ -137,7 +137,7 @@ class ManagedWidget(SyftWidget):
     
     def _stop_thread_server(self):
         """Stop the thread server"""
-        from .process_tracker import untrack_process, kill_processes_on_port
+        from .process_tracker import kill_processes_on_port
         
         print(f"_stop_thread_server called. Current thread_server: {self.thread_server}")
         
@@ -160,9 +160,7 @@ class ManagedWidget(SyftWidget):
                 else:
                     print("Thread server process was already dead")
                 
-                # Untrack the process
-                if pid:
-                    untrack_process(pid)
+                # Process cleanup complete
                     
             except Exception as e:
                 print(f"Error stopping thread server: {e}")
@@ -362,10 +360,35 @@ class ManagedWidget(SyftWidget):
         
         print("Monitoring thread exiting")
     
+    def _get_initial_data(self):
+        """Get initial data from endpoints"""
+        if not self.endpoints:
+            return {}
+        
+        # Import here to avoid circular imports
+        from .endpoints import ENDPOINT_REGISTRY
+        
+        # Get data from first endpoint
+        first_endpoint = list(self.endpoints.keys())[0] if self.endpoints else None
+        if first_endpoint and first_endpoint in ENDPOINT_REGISTRY:
+            try:
+                return ENDPOINT_REGISTRY[first_endpoint]()
+            except Exception:
+                pass
+        return {}
+    
     def _update_display(self):
         """Render the widget"""
-        data = self.snapshot_cache.get("/time", {})
-        self._render_iframe(data)
+        self._render_iframe(self.initial_data)
+    
+    def _format_initial_data(self, data):
+        """Format initial data for display - override this for custom formatting"""
+        if not data:
+            return "No data available"
+        
+        # Default: show as formatted JSON
+        import json
+        return f'<pre>{json.dumps(data, indent=2)}</pre>'
     
     def _render_iframe(self, initial_data):
         html_content = f"""
@@ -385,16 +408,16 @@ class ManagedWidget(SyftWidget):
                     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                     transition: all 0.3s ease;
                 }}
-                .timestamp {{
-                    font-size: 36px;
+                .data-display {{
                     color: #333;
-                    margin-bottom: 10px;
-                    font-weight: bold;
-                }}
-                .formatted {{
-                    font-size: 18px;
-                    color: #666;
                     margin-bottom: 15px;
+                    min-height: 60px;
+                }}
+                .data-display pre {{
+                    background: #f8f8f8;
+                    padding: 10px;
+                    border-radius: 4px;
+                    overflow-x: auto;
                 }}
                 .status {{
                     font-size: 14px;
@@ -453,8 +476,7 @@ class ManagedWidget(SyftWidget):
         </head>
         <body>
             <div class="container" id="container">
-                <div class="timestamp" id="timestamp">{initial_data.get('timestamp', 'N/A')}</div>
-                <div class="formatted" id="formatted">{initial_data.get('formatted', 'N/A')}</div>
+                <div class="data-display" id="data-display">{self._format_initial_data(initial_data)}</div>
                 <div class="status" id="status">🔴 Checkpoint</div>
                 <div class="stage" id="stage">Stage: Checkpoint data</div>
                 <div class="button-group">
@@ -473,9 +495,18 @@ class ManagedWidget(SyftWidget):
                 let originalThreadPort = {self.thread_server_port};
                 let syftboxServerUrl = null;
                 let lastSuccessfulData = {initial_data}; // Keep track of last good data
-                const endpoint = '/time';
+                const endpoints = {self.endpoints};
+                const endpoint = endpoints[0] || '/health'; // Use first endpoint or fallback to health
                 const checkInterval = {int(self.check_interval * 1000)};
                 const syftboxCheckInterval = 2000; // Check for SyftBox every 2 seconds
+                
+                // Default data formatter - can be overridden by subclasses
+                function formatData(data) {{
+                    if (!data || Object.keys(data).length === 0) {{
+                        return 'No data available';
+                    }}
+                    return '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                }}
                 
                 // Stage management
                 const stages = {{
@@ -695,13 +726,11 @@ class ManagedWidget(SyftWidget):
                     
                     // Update display
                     if (data) {{
-                        document.getElementById('timestamp').textContent = data.timestamp || 'N/A';
-                        document.getElementById('formatted').textContent = data.formatted || 'N/A';
+                        document.getElementById('data-display').innerHTML = formatData(data);
                         lastSuccessfulData = data; // Update checkpoint with fresh data
                     }} else {{
                         // Use last successful data as checkpoint
-                        document.getElementById('timestamp').textContent = lastSuccessfulData.timestamp || 'N/A';
-                        document.getElementById('formatted').textContent = lastSuccessfulData.formatted || 'N/A';
+                        document.getElementById('data-display').innerHTML = formatData(lastSuccessfulData);
                     }}
                     
                     // Update status
