@@ -174,6 +174,10 @@ setInterval(updateSystem, 1000);
     
     def get_update_script(self):
         return "// Iframe handles updates internally"
+    
+    def _repr_html_(self):
+        """Override to return only iframe, bypassing main widget JavaScript"""
+        return self.render_content({}, "checkpoint")
 
 # Use it
 widget = SystemWidget()
