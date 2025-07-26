@@ -64,8 +64,8 @@ import time_endpoint
 
 # Simple live system monitor widget  
 class SystemWidget(APIDisplay):
-    def __init__(self):
-        super().__init__(endpoints=["/api/system"])
+    def __init__(self, start_infra=True):
+        super().__init__(endpoints=["/api/system"], start_infra=start_infra)
     
     def render_content(self, data, server_type="checkpoint"):
         system_data = data.get("/api/system", {"formatted_time": "12:34:56", "cpu_load": 0, "source": "MOCK"})
@@ -179,39 +179,13 @@ setInterval(updateSystem, 1000);
         """Override to return only iframe, bypassing main widget JavaScript"""
         return self.render_content({}, "checkpoint")
 
-def restart_infrastructure():
-    """Properly restart the infrastructure after it's been stopped"""
-    from syft_widget.widget_registry import get_current_registry
-    
-    # Get the registry and force cleanup
-    registry = get_current_registry()
-    
-    # Stop any existing infrastructure
-    registry.stop()
-    
-    # Reset internal state
-    if hasattr(registry, '_widget') and registry._widget:
-        registry._widget._starting_thread_server = False
-        registry._widget._stop_monitoring = True
-    
-    # Wait a moment for cleanup
-    import time
-    time.sleep(1)
-    
-    # Start fresh
-    from syft_widget import start_infrastructure
-    start_infrastructure()
-
-# Use it
+# Use it - infrastructure starts automatically!
 widget = SystemWidget()
-widget
+widget  # Widget automatically starts server and switches to 🧵 Thread mode with live data
 
-# To see live mode switching, start the thread server:
-from syft_widget import start_infrastructure
-start_infrastructure()  # Widget will automatically switch to 🧵 Thread mode and show live data
-
-# If start_infrastructure() stops working after interruption, use:
-# restart_infrastructure()
+# Optional: Disable auto-start if you want manual control
+widget = SystemWidget(start_infra=False)
+widget  # Stays in 📁 Checkpoint mode with mock data
 ```
 
 ## 📚 Documentation

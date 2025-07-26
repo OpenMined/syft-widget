@@ -6,12 +6,14 @@ from typing import List, Optional
 class APIDisplay:
     """Base class for display objects that use API endpoints"""
     
-    def __init__(self, endpoints: List[str]):
+    def __init__(self, endpoints: List[str], start_infra: bool = True):
         """
         Args:
             endpoints: List of endpoint paths this display uses (e.g., ["/time/current"])
+            start_infra: Whether to automatically start infrastructure when displayed (default: True)
         """
         self.endpoints = endpoints
+        self.start_infra = start_infra
         self.id = f"api-display-{id(self)}"
         
         # Import here to avoid circular imports
@@ -46,6 +48,14 @@ class APIDisplay:
     
     def _repr_html_(self):
         """Jupyter display method"""
+        # Auto-start infrastructure if enabled
+        if self.start_infra:
+            try:
+                from .widget_registry import start_infrastructure
+                start_infrastructure()
+            except Exception as e:
+                print(f"Warning: Could not start infrastructure: {e}")
+        
         mock_data = self.get_mock_data()
         initial_content = self.render_content(mock_data, "checkpoint")
         
