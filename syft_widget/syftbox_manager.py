@@ -27,6 +27,9 @@ class SyftBoxManager:
         self.is_syftbox_running = False
         self._check_thread = None
         self._checking = False
+        self._clone_attempts = 0
+        self._max_clone_attempts = 3
+        self._repo_not_found = False
         
     def get_syftbox_path(self) -> Optional[Path]:
         """Get SyftBox path from syft_core client"""
@@ -40,6 +43,10 @@ class SyftBoxManager:
     
     def check_app_exists(self) -> bool:
         """Check if the app already exists in SyftBox/apps"""
+        # print(f"Checking if app exists at {self.app_path}")
+        # print(f"SyftBox path: {self.syftbox_path}")
+        # print(f"App path: {self.app_path}")
+        # print(f"App path exists: {self.app_path.exists()}")
         if not self.syftbox_path:
             return False
         return self.app_path.exists()
@@ -94,21 +101,54 @@ class SyftBoxManager:
             print("SyftBox path not available")
             return False
             
+        # Check if we've already determined the repo doesn't exist
+        if self._repo_not_found:
+            return False
+            
+        # Check if we've exceeded max attempts
+        if self._clone_attempts >= self._max_clone_attempts:
+            if not self._repo_not_found:
+                print(f"\n⚠️  Max clone attempts ({self._max_clone_attempts}) reached for {self.repo_url}")
+                print("   This may indicate:")
+                print("   - The repository doesn't exist yet")
+                print("   - The repository is private")
+                print("   - Network connectivity issues")
+                print("\n   To fix this, either:")
+                print("   1. Create and push your repository to GitHub")
+                print("   2. Check your network connection")
+                print("   3. Restart the infrastructure after fixing the issue\n")
+                self._repo_not_found = True
+            return False
+            
         apps_dir = self.syftbox_path / "apps"
         apps_dir.mkdir(exist_ok=True)
         
         try:
-            print(f"Cloning {self.repo_url} to {self.app_path}...")
-            subprocess.run(
+            self._clone_attempts += 1
+            print(f"Cloning {self.repo_url} to {self.app_path}... (attempt {self._clone_attempts}/{self._max_clone_attempts})")
+            result = subprocess.run(
                 ["git", "clone", self.repo_url, str(self.app_path)],
                 check=True,
                 capture_output=True,
                 text=True
             )
             print(f"Successfully cloned {self.app_name}")
+            self._clone_attempts = 0  # Reset on success
             return True
         except subprocess.CalledProcessError as e:
-            print(f"Failed to clone repository: {e}")
+            error_output = e.stderr if hasattr(e, 'stderr') else str(e)
+            
+            # Check for specific error messages
+            if "Repository not found" in error_output or "does not exist" in error_output:
+                print(f"\n❌ Repository not found: {self.repo_url}")
+                print("   Please ensure the repository exists and is public.")
+                self._repo_not_found = True
+            elif "Could not resolve host" in error_output:
+                print(f"\n❌ Network error: Could not resolve github.com")
+                print("   Please check your internet connection.")
+            else:
+                print(f"Failed to clone repository: {e}")
+                
             return False
     
     def get_syftbox_server_url(self) -> Optional[str]:
@@ -189,11 +229,14 @@ class SyftBoxManager:
                     break
             else:
                 # App doesn't exist, clone it
-                if self.clone_app():
-                    print(f"App cloned (version {current_version}), waiting for SyftBox to start it...")
-                    just_cloned = True
-                else:
-                    print("Failed to clone app, will retry...")
+                if not self._repo_not_found and self._clone_attempts < self._max_clone_attempts:
+                    if self.clone_app():
+                        print(f"App cloned (version {current_version}), waiting for SyftBox to start it...")
+                        just_cloned = True
+                    else:
+                        if not self._repo_not_found:
+                            print("Failed to clone app, will retry...")
+                        time_module.sleep(2)  # Wait a bit before retrying
                     
             # Don't sleep - let the timeout be our rate limiter
             # The 0.5s timeout on HTTP requests provides natural pacing

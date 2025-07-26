@@ -20,13 +20,16 @@ class WidgetRegistry:
         self._initialized = True
         self._widget = None
     
-    def start(self, thread_port: int = 8001, syftbox_port: int = 8002, mode: str = "auto"):
+    def start(self, thread_port: int = 8001, syftbox_port: int = 8002, mode: str = "auto",
+              app_name: str = "syft-widget", repo_url: str = "https://github.com/OpenMined/syft-widget"):
         """Start the shared infrastructure if not already running
         
         Args:
             thread_port: Port for the thread server
             syftbox_port: Port for the SyftBox app (deprecated, auto-discovered)
             mode: "development" (no SyftBox), "production" (full), or "auto" (default)
+            app_name: Name of the SyftBox app to manage
+            repo_url: GitHub repository URL for the app
         """
         if not self._widget:
             # Lazy import to avoid circular dependency
@@ -44,7 +47,9 @@ class WidgetRegistry:
             self._widget = ManagedWidget(
                 thread_server_port=thread_port,
                 endpoints=endpoints,
-                mode=mode
+                mode=mode,
+                app_name=app_name,
+                repo_url=repo_url
             )
             
             # Override display to prevent showing the widget
@@ -81,7 +86,8 @@ def get_current_registry():
     return _registry
 
 
-def start_infrastructure(thread_port: int = 8001, syftbox_port: int = 8002, mode: str = "auto"):
+def start_infrastructure(thread_port: int = 8001, syftbox_port: int = 8002, mode: str = "auto", 
+                        app_name: str = "syft-widget", repo_url: str = "https://github.com/OpenMined/syft-widget"):
     """Convenience function to start the infrastructure
     
     Args:
@@ -91,8 +97,10 @@ def start_infrastructure(thread_port: int = 8001, syftbox_port: int = 8002, mode
             - development: Only checkpoint and thread server (no SyftBox)
             - production: Full lifecycle with SyftBox
             - auto: Detect based on environment
+        app_name: Name of the SyftBox app to manage (default: "syft-widget")
+        repo_url: GitHub repository URL for the app (default: "https://github.com/OpenMined/syft-widget")
     """
-    _registry.start(thread_port, syftbox_port, mode)
+    _registry.start(thread_port, syftbox_port, mode, app_name, repo_url)
 
 
 def stop_infrastructure():
