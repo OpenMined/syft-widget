@@ -50,157 +50,241 @@ with open("dashboard_endpoints.py", "w") as f:
 # Import the endpoint from the file
 import dashboard_endpoints
 
-# Create a dashboard widget
+# Create an iframe-based dashboard widget (solves mode switching issues)
 class SystemDashboard(APIDisplay):
     def __init__(self):
         super().__init__(endpoints=["/api/metrics"])
     
     def render_content(self, data, server_type="checkpoint"):
-        metrics = data.get("/api/metrics", {})
+        import base64
         
-        # Determine active mode
-        modes = {"checkpoint": "📁", "thread": "🧵", "syftbox": "📦"}
-        colors = {"checkpoint": "#6c757d", "thread": "#28a745", "syftbox": "#007bff"}
+        # Create complete HTML page for iframe
+        iframe_html = f'''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {{
+                    margin: 0;
+                    padding: 0;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                }}
+                .dashboard {{
+                    border: 1px solid #ddd;
+                    border-radius: 8px;
+                    background: white;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }}
+                .header {{
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    color: white;
+                    padding: 15px;
+                }}
+                .mode-selector {{
+                    background: #f8f9fa;
+                    padding: 10px;
+                    border-bottom: 1px solid #dee2e6;
+                    display: flex;
+                    gap: 8px;
+                    align-items: center;
+                }}
+                .mode-btn {{
+                    border: none;
+                    padding: 4px 12px;
+                    border-radius: 15px;
+                    font-size: 13px;
+                    cursor: pointer;
+                }}
+                .mode-btn.active {{
+                    color: white;
+                }}
+                .mode-btn.checkpoint {{ background: #6c757d; }}
+                .mode-btn.thread {{ background: #28a745; }}
+                .mode-btn.syftbox {{ background: #007bff; }}
+                .mode-btn.inactive {{ background: #e9ecef; color: #666; }}
+                .metrics {{
+                    padding: 20px;
+                }}
+                .metric {{
+                    margin-bottom: 15px;
+                }}
+                .metric-header {{
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 5px;
+                }}
+                .metric-bar {{
+                    background: #e9ecef;
+                    height: 20px;
+                    border-radius: 10px;
+                    overflow: hidden;
+                }}
+                .metric-fill {{
+                    height: 100%;
+                }}
+                .cpu {{ background: #28a745; }}
+                .memory {{ background: #17a2b8; }}
+                .disk {{ background: #6f42c1; }}
+                .footer {{
+                    background: #f8f9fa;
+                    padding: 10px;
+                    text-align: center;
+                    font-size: 12px;
+                    color: #666;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="dashboard">
+                <div class="header">
+                    <h3 style="margin: 0;">📊 System Dashboard</h3>
+                </div>
+                
+                <div class="mode-selector">
+                    <span style="font-size: 14px; color: #666;">Mode:</span>
+                    <button class="mode-btn checkpoint {'active' if server_type == 'checkpoint' else 'inactive'}">📁 Checkpoint</button>
+                    <button class="mode-btn thread {'active' if server_type == 'thread' else 'inactive'}">🧵 Thread</button>
+                    <button class="mode-btn syftbox {'active' if server_type == 'syftbox' else 'inactive'}">📦 Syftbox</button>
+                </div>
+                
+                <div class="metrics" id="metrics">
+                    <!-- Metrics will be updated by JavaScript -->
+                </div>
+                
+                <div class="footer">
+                    Live updates every 5 seconds • Connected to: <span id="current-mode">{server_type}</span>
+                </div>
+            </div>
+
+            <script>
+                let currentData = {{}};
+                let currentServerType = '{server_type}';
+                
+                function updateMetrics(metrics, serverType) {{
+                    currentServerType = serverType;
+                    
+                    // Update mode buttons
+                    document.querySelectorAll('.mode-btn').forEach(btn => {{
+                        btn.classList.remove('active');
+                        btn.classList.add('inactive');
+                    }});
+                    
+                    const activeBtn = document.querySelector(`.mode-btn.${{serverType}}`);
+                    if (activeBtn) {{
+                        activeBtn.classList.remove('inactive');
+                        activeBtn.classList.add('active');
+                    }}
+                    
+                    // Update metrics
+                    const metricsEl = document.getElementById('metrics');
+                    metricsEl.innerHTML = `
+                        <div class="metric">
+                            <div class="metric-header">
+                                <span>CPU Usage</span>
+                                <span style="font-weight: bold;">${{metrics.cpu || 0}}%</span>
+                            </div>
+                            <div class="metric-bar">
+                                <div class="metric-fill cpu" style="width: ${{metrics.cpu || 0}}%;"></div>
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-header">
+                                <span>Memory</span>
+                                <span style="font-weight: bold;">${{metrics.memory || 0}}%</span>
+                            </div>
+                            <div class="metric-bar">
+                                <div class="metric-fill memory" style="width: ${{metrics.memory || 0}}%;"></div>
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-header">
+                                <span>Disk</span>
+                                <span style="font-weight: bold;">${{metrics.disk || 0}}%</span>
+                            </div>
+                            <div class="metric-bar">
+                                <div class="metric-fill disk" style="width: ${{metrics.disk || 0}}%;"></div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Update footer
+                    document.getElementById('current-mode').textContent = serverType;
+                    
+                    console.log('🔄 IFRAME: Updated widget - Mode:', serverType, 'Data:', metrics);
+                }}
+                
+                // Server detection logic
+                async function checkServer(url) {{
+                    try {{
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 500);
+                        const response = await fetch(url + '/health', {{ 
+                            signal: controller.signal,
+                            mode: 'cors' 
+                        }});
+                        clearTimeout(timeoutId);
+                        return response.ok;
+                    }} catch(e) {{
+                        return false;
+                    }}
+                }}
+                
+                async function updateDisplay() {{
+                    let baseUrl = null;
+                    let serverType = "checkpoint";
+                    
+                    // Check for thread servers (8000-8010)
+                    for (let port = 8000; port <= 8010; port++) {{
+                        if (await checkServer(`http://localhost:${{port}}`)) {{
+                            baseUrl = `http://localhost:${{port}}`;
+                            serverType = "thread";
+                            console.log('🔄 IFRAME: Found thread server at port', port);
+                            break;
+                        }}
+                    }}
+                    
+                    // Fetch data if server available
+                    let metrics = {{cpu: 45, memory: 72, disk: 89}}; // Default checkpoint data
+                    if (baseUrl) {{
+                        try {{
+                            const response = await fetch(baseUrl + '/api/metrics', {{ mode: 'cors' }});
+                            if (response.ok) {{
+                                metrics = await response.json();
+                                console.log('🔄 IFRAME: Fetched live data:', metrics);
+                            }}
+                        }} catch(e) {{
+                            console.log('🔄 IFRAME: Error fetching data, using checkpoint:', e);
+                            serverType = "checkpoint";
+                        }}
+                    }}
+                    
+                    // Update display
+                    updateMetrics(metrics, serverType);
+                }}
+                
+                // Initial load
+                updateMetrics({data.get("/api/metrics", {{"cpu": 45, "memory": 72, "disk": 89}})}, '{server_type}');
+                
+                // Start polling
+                setInterval(updateDisplay, 1000);
+                updateDisplay();
+            </script>
+        </body>
+        </html>
+        '''
+        
+        # Encode HTML for iframe
+        encoded_html = base64.b64encode(iframe_html.encode('utf-8')).decode('utf-8')
         
         return f'''
-        <div style="border: 1px solid #ddd; border-radius: 8px; background: white; 
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-family: sans-serif;">
-            <!-- Header -->
-            <div style="background: linear-gradient(135deg, #667eea, #764ba2); 
-                        color: white; padding: 15px;">
-                <h3 style="margin: 0;">📊 System Dashboard</h3>
-            </div>
-            
-            <!-- Mode Selector -->
-            <div style="background: #f8f9fa; padding: 10px; border-bottom: 1px solid #dee2e6;">
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <span style="font-size: 14px; color: #666;">Mode:</span>
-                    {"".join(f'''<button style="background: {colors[mode] if server_type == mode else '#e9ecef'}; 
-                             color: {'white' if server_type == mode else '#666'}; border: none; 
-                             padding: 4px 12px; border-radius: 15px; font-size: 13px;">
-                             {icon} {mode.title()}</button>''' 
-                             for mode, icon in modes.items())}
-                </div>
-            </div>
-            
-            <!-- Metrics -->
-            <div style="padding: 20px;">
-                <div style="margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span>CPU Usage</span>
-                        <span style="font-weight: bold;">{metrics.get('cpu', 0)}%</span>
-                    </div>
-                    <div style="background: #e9ecef; height: 20px; border-radius: 10px; overflow: hidden;">
-                        <div style="background: #28a745; width: {metrics.get('cpu', 0)}%; height: 100%;"></div>
-                    </div>
-                </div>
-                
-                <div style="margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span>Memory</span>
-                        <span style="font-weight: bold;">{metrics.get('memory', 0)}%</span>
-                    </div>
-                    <div style="background: #e9ecef; height: 20px; border-radius: 10px; overflow: hidden;">
-                        <div style="background: #17a2b8; width: {metrics.get('memory', 0)}%; height: 100%;"></div>
-                    </div>
-                </div>
-                
-                <div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span>Disk</span>
-                        <span style="font-weight: bold;">{metrics.get('disk', 0)}%</span>
-                    </div>
-                    <div style="background: #e9ecef; height: 20px; border-radius: 10px; overflow: hidden;">
-                        <div style="background: #6f42c1; width: {metrics.get('disk', 0)}%; height: 100%;"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Footer -->
-            <div style="background: #f8f9fa; padding: 10px; text-align: center; 
-                        font-size: 12px; color: #666;">
-                Live updates every 5 seconds • Connected to: {server_type}
-            </div>
-        </div>
-        '''
-    
-    def get_update_script(self):
-        """Override to maintain widget HTML (prevents fallback to JSON)"""
-        return '''
-        // Get fresh data and current mode
-        const metrics = currentData['/api/metrics'] || {};
-        const currentMode = serverType; // Direct reference to avoid sync issues
-        
-        // Mode styling
-        const modes = {"checkpoint": "📁", "thread": "🧵", "syftbox": "📦"};
-        const colors = {"checkpoint": "#6c757d", "thread": "#28a745", "syftbox": "#007bff"};
-        
-        // Log for debugging
-        console.log(`🔄 Updating widget - Mode: ${currentMode}, Data:`, metrics);
-        
-        // Generate mode buttons
-        let modeButtons = '';
-        Object.entries(modes).forEach(([mode, icon]) => {
-            const isActive = mode === currentMode;
-            const bgColor = isActive ? colors[mode] : '#e9ecef';
-            const textColor = isActive ? 'white' : '#666';
-            
-            modeButtons += `<button style="background: ${bgColor}; 
-                                           color: ${textColor}; border: none; 
-                                           padding: 4px 12px; border-radius: 15px; font-size: 13px;">
-                                       ${icon} ${mode.charAt(0).toUpperCase() + mode.slice(1)}
-                                   </button>`;
-        });
-        
-        // Completely replace widget content
-        element.innerHTML = `
-        <div style="border: 1px solid #ddd; border-radius: 8px; background: white; 
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-family: sans-serif;">
-            <div style="background: linear-gradient(135deg, #667eea, #764ba2); 
-                        color: white; padding: 15px;">
-                <h3 style="margin: 0;">📊 System Dashboard</h3>
-            </div>
-            <div style="background: #f8f9fa; padding: 10px; border-bottom: 1px solid #dee2e6;">
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <span style="font-size: 14px; color: #666;">Mode:</span>
-                    ${modeButtons}
-                </div>
-            </div>
-            <div style="padding: 20px;">
-                <div style="margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span>CPU Usage</span>
-                        <span style="font-weight: bold;">${metrics.cpu || 0}%</span>
-                    </div>
-                    <div style="background: #e9ecef; height: 20px; border-radius: 10px; overflow: hidden;">
-                        <div style="background: #28a745; width: ${metrics.cpu || 0}%; height: 100%;"></div>
-                    </div>
-                </div>
-                <div style="margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span>Memory</span>
-                        <span style="font-weight: bold;">${metrics.memory || 0}%</span>
-                    </div>
-                    <div style="background: #e9ecef; height: 20px; border-radius: 10px; overflow: hidden;">
-                        <div style="background: #17a2b8; width: ${metrics.memory || 0}%; height: 100%;"></div>
-                    </div>
-                </div>
-                <div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span>Disk</span>
-                        <span style="font-weight: bold;">${metrics.disk || 0}%</span>
-                    </div>
-                    <div style="background: #e9ecef; height: 20px; border-radius: 10px; overflow: hidden;">
-                        <div style="background: #6f42c1; width: ${metrics.disk || 0}%; height: 100%;"></div>
-                    </div>
-                </div>
-            </div>
-            <div style="background: #f8f9fa; padding: 10px; text-align: center; 
-                        font-size: 12px; color: #666;">
-                Live updates every 5 seconds • Connected to: ${currentMode}
-            </div>
-        </div>
-        `;
+        <iframe 
+            src="data:text/html;base64,{encoded_html}"
+            width="100%" 
+            height="400"
+            frameborder="0"
+            style="border: none; border-radius: 8px;">
+        </iframe>
         '''
 
 # Use it in Jupyter
