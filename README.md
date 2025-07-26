@@ -28,287 +28,78 @@ Your widgets automatically transition between modes, so users **never see a brok
 pip install syft-widget
 ```
 
-Create a live dashboard widget that monitors system metrics:
+Create a simple live timestamp widget:
 
 ```python
 from syft_widget import APIDisplay, register_endpoint
+import time, base64
 
-# First, write the endpoint to a file (required for thread server)
-endpoint_code = '''
-from syft_widget import register_endpoint
+# Create endpoint with real timestamp data
+@register_endpoint("/api/time")
+def get_current_time(request=None):
+    return {"timestamp": time.time(), "formatted": time.strftime("%H:%M:%S")}
 
-@register_endpoint("/api/metrics")
-def get_metrics(request=None):
-    # In production: reads real system metrics
-    # In checkpoint mode: returns mock data
-    return {"cpu": 45, "memory": 72, "disk": 89}
-'''
-
-with open("dashboard_endpoints.py", "w") as f:
-    f.write(endpoint_code)
-
-# Import the endpoint from the file
-import dashboard_endpoints
-
-# Create an iframe-based dashboard widget (solves mode switching issues)
-class SystemDashboard(APIDisplay):
+# Simple live timestamp widget  
+class TimeWidget(APIDisplay):
     def __init__(self):
-        super().__init__(endpoints=["/api/metrics"])
+        super().__init__(endpoints=["/api/time"])
     
     def render_content(self, data, server_type="checkpoint"):
-        import base64
-        import json
+        time_data = data.get("/api/time", {"formatted": "12:34:56"})
+        current_time = time_data.get("formatted", "12:34:56")
         
-        # Create complete HTML page for iframe
-        iframe_html = f'''
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                body {{
-                    margin: 0;
-                    padding: 0;
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                }}
-                .dashboard {{
-                    border: 1px solid #ddd;
-                    border-radius: 8px;
-                    background: white;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                }}
-                .header {{
-                    background: linear-gradient(135deg, #667eea, #764ba2);
-                    color: white;
-                    padding: 15px;
-                }}
-                .mode-selector {{
-                    background: #f8f9fa;
-                    padding: 10px;
-                    border-bottom: 1px solid #dee2e6;
-                    display: flex;
-                    gap: 8px;
-                    align-items: center;
-                }}
-                .mode-btn {{
-                    border: none;
-                    padding: 4px 12px;
-                    border-radius: 15px;
-                    font-size: 13px;
-                    cursor: pointer;
-                }}
-                .mode-btn.active {{
-                    color: white;
-                }}
-                .mode-btn.checkpoint {{ background: #6c757d; }}
-                .mode-btn.thread {{ background: #28a745; }}
-                .mode-btn.syftbox {{ background: #007bff; }}
-                .mode-btn.inactive {{ background: #e9ecef; color: #666; }}
-                .metrics {{
-                    padding: 20px;
-                }}
-                .metric {{
-                    margin-bottom: 15px;
-                }}
-                .metric-header {{
-                    display: flex;
-                    justify-content: space-between;
-                    margin-bottom: 5px;
-                }}
-                .metric-bar {{
-                    background: #e9ecef;
-                    height: 20px;
-                    border-radius: 10px;
-                    overflow: hidden;
-                }}
-                .metric-fill {{
-                    height: 100%;
-                }}
-                .cpu {{ background: #28a745; }}
-                .memory {{ background: #17a2b8; }}
-                .disk {{ background: #6f42c1; }}
-                .footer {{
-                    background: #f8f9fa;
-                    padding: 10px;
-                    text-align: center;
-                    font-size: 12px;
-                    color: #666;
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="dashboard">
-                <div class="header">
-                    <h3 style="margin: 0;">📊 System Dashboard</h3>
-                </div>
-                
-                <div class="mode-selector">
-                    <span style="font-size: 14px; color: #666;">Mode:</span>
-                    <button class="mode-btn checkpoint {'active' if server_type == 'checkpoint' else 'inactive'}">📁 Checkpoint</button>
-                    <button class="mode-btn thread {'active' if server_type == 'thread' else 'inactive'}">🧵 Thread</button>
-                    <button class="mode-btn syftbox {'active' if server_type == 'syftbox' else 'inactive'}">📦 Syftbox</button>
-                </div>
-                
-                <div class="metrics" id="metrics">
-                    <!-- Metrics will be updated by JavaScript -->
-                </div>
-                
-                <div class="footer">
-                    Live updates every 5 seconds • Connected to: <span id="current-mode">{server_type}</span>
-                </div>
-            </div>
-
-            <script>
-                let currentData = {{}};
-                let currentServerType = '{server_type}';
-                
-                function updateMetrics(metrics, serverType) {{
-                    currentServerType = serverType;
-                    
-                    // Update mode buttons
-                    document.querySelectorAll('.mode-btn').forEach(btn => {{
-                        btn.classList.remove('active');
-                        btn.classList.add('inactive');
-                    }});
-                    
-                    const activeBtn = document.querySelector(`.mode-btn.${{serverType}}`);
-                    if (activeBtn) {{
-                        activeBtn.classList.remove('inactive');
-                        activeBtn.classList.add('active');
-                    }}
-                    
-                    // Update metrics
-                    const metricsEl = document.getElementById('metrics');
-                    metricsEl.innerHTML = `
-                        <div class="metric">
-                            <div class="metric-header">
-                                <span>CPU Usage</span>
-                                <span style="font-weight: bold;">${{metrics.cpu || 0}}%</span>
-                            </div>
-                            <div class="metric-bar">
-                                <div class="metric-fill cpu" style="width: ${{metrics.cpu || 0}}%;"></div>
-                            </div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-header">
-                                <span>Memory</span>
-                                <span style="font-weight: bold;">${{metrics.memory || 0}}%</span>
-                            </div>
-                            <div class="metric-bar">
-                                <div class="metric-fill memory" style="width: ${{metrics.memory || 0}}%;"></div>
-                            </div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-header">
-                                <span>Disk</span>
-                                <span style="font-weight: bold;">${{metrics.disk || 0}}%</span>
-                            </div>
-                            <div class="metric-bar">
-                                <div class="metric-fill disk" style="width: ${{metrics.disk || 0}}%;"></div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Update footer
-                    document.getElementById('current-mode').textContent = serverType;
-                    
-                    console.log('🔄 IFRAME: Updated widget - Mode:', serverType, 'Data:', metrics);
-                }}
-                
-                // Server detection logic
-                async function checkServer(url) {{
-                    try {{
-                        const controller = new AbortController();
-                        const timeoutId = setTimeout(() => controller.abort(), 500);
-                        const response = await fetch(url + '/health', {{ 
-                            signal: controller.signal,
-                            mode: 'cors' 
-                        }});
-                        clearTimeout(timeoutId);
-                        return response.ok;
-                    }} catch(e) {{
-                        return false;
-                    }}
-                }}
-                
-                async function updateDisplay() {{
-                    let baseUrl = null;
-                    let serverType = "checkpoint";
-                    
-                    // Check for thread servers (8000-8010)
-                    for (let port = 8000; port <= 8010; port++) {{
-                        if (await checkServer(`http://localhost:${{port}}`)) {{
-                            baseUrl = `http://localhost:${{port}}`;
-                            serverType = "thread";
-                            console.log('🔄 IFRAME: Found thread server at port', port);
-                            break;
-                        }}
-                    }}
-                    
-                    // Fetch data if server available
-                    let metrics = {{cpu: 45, memory: 72, disk: 89}}; // Default checkpoint data
-                    if (baseUrl) {{
-                        try {{
-                            const response = await fetch(baseUrl + '/api/metrics', {{ mode: 'cors' }});
-                            if (response.ok) {{
-                                metrics = await response.json();
-                                console.log('🔄 IFRAME: Fetched live data:', metrics);
-                            }}
-                        }} catch(e) {{
-                            console.log('🔄 IFRAME: Error fetching data, using checkpoint:', e);
-                            serverType = "checkpoint";
-                        }}
-                    }}
-                    
-                    // Update display
-                    updateMetrics(metrics, serverType);
-                }}
-                
-                // Initial load
-                updateMetrics({json.dumps(data.get("/api/metrics", {"cpu": 45, "memory": 72, "disk": 89}))}, '{server_type}');
-                
-                // Start polling
-                setInterval(updateDisplay, 1000);
-                updateDisplay();
-            </script>
-        </body>
-        </html>
-        '''
+        # Create iframe with live timestamp display
+        html = f'''<!DOCTYPE html>
+<html><head><style>
+body {{ margin:0; font-family:Arial; background:#f5f5f5; }}
+.widget {{ background:white; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1); margin:10px; }}
+.header {{ background:linear-gradient(135deg,#667eea,#764ba2); color:white; padding:15px; border-radius:8px 8px 0 0; }}
+.content {{ padding:30px; text-align:center; }}
+.time-display {{ font-size:48px; font-weight:bold; color:#333; margin:20px 0; font-family:monospace; }}
+.mode {{ display:inline-block; padding:4px 12px; border-radius:15px; font-size:12px; color:white; }}
+.checkpoint {{ background:#6c757d; }} .thread {{ background:#28a745; }} .syftbox {{ background:#007bff; }}
+</style></head><body>
+<div class="widget">
+    <div class="header"><h3 style="margin:0">🕐 Live Time</h3></div>
+    <div class="content">
+        <div class="time-display" id="time-display">{current_time}</div>
+        <div>Mode: <span class="mode {server_type}" id="mode-display">{server_type.title()}</span></div>
+    </div>
+</div>
+<script>
+async function updateTime() {{
+    try {{
+        for (let port = 8000; port <= 8010; port++) {{
+            const resp = await fetch(`http://localhost:${{port}}/api/time`, {{mode:'cors', signal:AbortSignal.timeout(500)}});
+            if (resp.ok) {{
+                const data = await resp.json();
+                document.getElementById('time-display').textContent = data.formatted;
+                document.getElementById('mode-display').textContent = 'Thread';
+                document.getElementById('mode-display').className = 'mode thread';
+                return;
+            }}
+        }}
+        // Fallback to local time if no server
+        document.getElementById('time-display').textContent = new Date().toLocaleTimeString();
+        document.getElementById('mode-display').textContent = 'Checkpoint';
+        document.getElementById('mode-display').className = 'mode checkpoint';
+    }} catch(e) {{}}
+}}
+setInterval(updateTime, 1000);
+</script></body></html>'''
         
-        # Encode HTML for iframe
-        encoded_html = base64.b64encode(iframe_html.encode('utf-8')).decode('utf-8')
-        
-        return f'''
-        <iframe 
-            src="data:text/html;base64,{encoded_html}"
-            width="100%" 
-            height="400"
-            frameborder="0"
-            style="border: none; border-radius: 8px;">
-        </iframe>
-        '''
+        return f'<iframe src="data:text/html;base64,{base64.b64encode(html.encode()).decode()}" width="100%" height="200" frameborder="0" style="border:none;border-radius:8px;"></iframe>'
     
     def get_update_script(self):
-        """Override to prevent external JavaScript from interfering with iframe"""
-        return '''
-        // Iframe handles all updates internally - no external updates needed
-        console.log('🔄 SystemDashboard: External update called - iframe handles this internally');
-        '''
+        return "// Iframe handles updates internally"
 
-# Use it in Jupyter
-widget = SystemDashboard()
-widget  # Shows dashboard in checkpoint mode (📁 Mock Data)
+# Use it
+widget = TimeWidget()
+widget
 
 # To see live mode switching, start the thread server:
 from syft_widget import start_infrastructure
-start_infrastructure()  # Widget will automatically switch to 🧵 Thread mode
-
-# Note: If the widget doesn't switch modes, check the browser console for CORS errors.
-# The widget should automatically detect the server within ~5 seconds.
-
-# To stop the server:
-# from syft_widget import stop_infrastructure
-# stop_infrastructure()
+start_infrastructure()  # Widget will automatically switch to 🧵 Thread mode and show live data
 ```
 
 ## 📚 Documentation
