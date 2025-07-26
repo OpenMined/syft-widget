@@ -34,10 +34,19 @@ Create a simple live timestamp widget:
 from syft_widget import APIDisplay, register_endpoint
 import time, base64
 
-# Create endpoint with real timestamp data
+# Write endpoint to file (required for thread server)
+with open("time_endpoint.py", "w") as f:
+    f.write('''
+from syft_widget import register_endpoint
+import time
+
 @register_endpoint("/api/time")
 def get_current_time(request=None):
     return {"timestamp": time.time(), "formatted": time.strftime("%H:%M:%S")}
+''')
+
+# Import the endpoint
+import time_endpoint
 
 # Simple live timestamp widget  
 class TimeWidget(APIDisplay):
