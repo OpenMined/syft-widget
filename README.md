@@ -127,17 +127,21 @@ class SystemDashboard(APIDisplay):
     def get_update_script(self):
         """Override to maintain widget HTML (prevents fallback to JSON)"""
         return '''
-        // Get fresh data
+        // Get fresh data and current mode
         const metrics = currentData['/api/metrics'] || {};
+        const currentMode = serverType; // Direct reference to avoid sync issues
         
         // Mode styling
         const modes = {"checkpoint": "📁", "thread": "🧵", "syftbox": "📦"};
         const colors = {"checkpoint": "#6c757d", "thread": "#28a745", "syftbox": "#007bff"};
         
+        // Log for debugging
+        console.log(`🔄 Updating widget - Mode: ${currentMode}, Data:`, metrics);
+        
         // Generate mode buttons
         let modeButtons = '';
         Object.entries(modes).forEach(([mode, icon]) => {
-            const isActive = mode === serverType;
+            const isActive = mode === currentMode;
             const bgColor = isActive ? colors[mode] : '#e9ecef';
             const textColor = isActive ? 'white' : '#666';
             
@@ -148,7 +152,7 @@ class SystemDashboard(APIDisplay):
                                    </button>`;
         });
         
-        // Update widget with live data
+        // Completely replace widget content
         element.innerHTML = `
         <div style="border: 1px solid #ddd; border-radius: 8px; background: white; 
                     box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-family: sans-serif;">
@@ -193,7 +197,7 @@ class SystemDashboard(APIDisplay):
             </div>
             <div style="background: #f8f9fa; padding: 10px; text-align: center; 
                         font-size: 12px; color: #666;">
-                Live updates every 5 seconds • Connected to: ${serverType}
+                Live updates every 5 seconds • Connected to: ${currentMode}
             </div>
         </div>
         `;
