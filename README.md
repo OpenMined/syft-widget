@@ -137,7 +137,7 @@ class SystemDashboard(APIDisplay):
         // Generate mode buttons
         let modeButtons = '';
         Object.entries(modes).forEach(([mode, icon]) => {
-            const isActive = mode === currentServerType;
+            const isActive = mode === serverType;
             const bgColor = isActive ? colors[mode] : '#e9ecef';
             const textColor = isActive ? 'white' : '#666';
             
@@ -193,7 +193,7 @@ class SystemDashboard(APIDisplay):
             </div>
             <div style="background: #f8f9fa; padding: 10px; text-align: center; 
                         font-size: 12px; color: #666;">
-                Live updates every 5 seconds • Connected to: ${currentServerType}
+                Live updates every 5 seconds • Connected to: ${serverType}
             </div>
         </div>
         `;
@@ -206,6 +206,9 @@ widget  # Shows dashboard in checkpoint mode (📁 Mock Data)
 # To see live mode switching, start the thread server:
 from syft_widget import start_infrastructure
 start_infrastructure()  # Widget will automatically switch to 🧵 Thread mode
+
+# Note: If the widget doesn't switch modes, check the browser console for CORS errors.
+# The widget should automatically detect the server within ~5 seconds.
 
 # To stop the server:
 # from syft_widget import stop_infrastructure
