@@ -46,7 +46,7 @@ def get_system_info(request=None):
     # Get CPU load average (only available on server, not in browser)
     try:
         load_avg = os.getloadavg()[0] * 100  # 1-minute load average as percentage
-        load_avg = min(load_avg, 100)  # Cap at 100%
+        load_avg = min(load_avg, 10)  # Cap at 100%
     except:
         load_avg = 0
     
@@ -64,8 +64,9 @@ import time_endpoint
 
 # Simple live system monitor widget  
 class SystemWidget(APIDisplay):
-    def __init__(self, start_infra=True):
+    def __init__(self, start_infra=True, verbose=False):
         super().__init__(endpoints=["/api/system"], start_infra=start_infra)
+        self.verbose = verbose
     
     def render_content(self, data, server_type="checkpoint"):
         system_data = data.get("/api/system", {"formatted_time": "12:34:56", "cpu_load": 0, "source": "MOCK"})
@@ -181,19 +182,31 @@ setInterval(updateSystem, 1000);
         if self.start_infra:
             try:
                 from syft_widget.widget_registry import start_infrastructure
+                # Temporarily suppress output if not verbose
+                if not self.verbose:
+                    import io, sys
+                    old_stdout = sys.stdout
+                    sys.stdout = io.StringIO()
+                
                 start_infrastructure()
+                
+                if not self.verbose:
+                    sys.stdout = old_stdout
             except Exception as e:
-                print(f"Warning: Could not start infrastructure: {e}")
+                if not self.verbose:
+                    sys.stdout = old_stdout
+                if self.verbose:
+                    print(f"Warning: Could not start infrastructure: {e}")
         
         return self.render_content({}, "checkpoint")
 
-# Use it - infrastructure starts automatically!
+# Use it - infrastructure starts automatically and silently!
 widget = SystemWidget()
 widget  # Widget automatically starts server and switches to 🧵 Thread mode with live data
 
-# Optional: Disable auto-start if you want manual control
-widget = SystemWidget(start_infra=False)
-widget  # Stays in 📁 Checkpoint mode with mock data
+# Options:
+widget = SystemWidget(verbose=True)  # Show startup logs
+widget = SystemWidget(start_infra=False)  # Stay in 📁 Checkpoint mode with mock data
 ```
 
 ## 📚 Documentation
