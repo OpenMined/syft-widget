@@ -39,25 +39,41 @@ with open("time_endpoint.py", "w") as f:
     f.write('''
 from syft_widget import register_endpoint
 import time
+import os
 
-@register_endpoint("/api/time")
-def get_current_time(request=None):
-    return {"timestamp": time.time(), "formatted": time.strftime("%H:%M:%S")}
+@register_endpoint("/api/system")
+def get_system_info(request=None):
+    # Get CPU load average (only available on server, not in browser)
+    try:
+        load_avg = os.getloadavg()[0] * 100  # 1-minute load average as percentage
+        load_avg = min(load_avg, 100)  # Cap at 100%
+    except:
+        load_avg = 0
+    
+    return {
+        "timestamp": time.time(), 
+        "formatted_time": time.strftime("%H:%M:%S"),
+        "cpu_load": round(load_avg, 1),
+        "server_pid": os.getpid(),
+        "source": "SERVER"
+    }
 ''')
 
 # Import the endpoint
 import time_endpoint
 
-# Simple live timestamp widget  
-class TimeWidget(APIDisplay):
+# Simple live system monitor widget  
+class SystemWidget(APIDisplay):
     def __init__(self):
-        super().__init__(endpoints=["/api/time"])
+        super().__init__(endpoints=["/api/system"])
     
     def render_content(self, data, server_type="checkpoint"):
-        time_data = data.get("/api/time", {"formatted": "12:34:56"})
-        current_time = time_data.get("formatted", "12:34:56")
+        system_data = data.get("/api/system", {"formatted_time": "12:34:56", "cpu_load": 0, "source": "MOCK"})
+        current_time = system_data.get("formatted_time", "12:34:56")
+        cpu_load = system_data.get("cpu_load", 0)
+        source = system_data.get("source", "MOCK")
         
-        # Create iframe with live timestamp display
+        # Create iframe with live system display
         html = f'''<!DOCTYPE html>
 <html><head><style>
 body {{ margin:0; font-family:Arial; background:#f5f5f5; }}
@@ -65,24 +81,28 @@ body {{ margin:0; font-family:Arial; background:#f5f5f5; }}
 .header {{ background:linear-gradient(135deg,#667eea,#764ba2); color:white; padding:15px; border-radius:8px 8px 0 0; }}
 .content {{ padding:30px; text-align:center; }}
 .time-display {{ font-size:48px; font-weight:bold; color:#333; margin:20px 0; font-family:monospace; }}
+.cpu-display {{ font-size:24px; font-weight:bold; color:#28a745; margin:10px 0; }}
 .mode {{ display:inline-block; padding:4px 12px; border-radius:15px; font-size:12px; color:white; }}
 .checkpoint {{ background:#6c757d; }} .thread {{ background:#28a745; }} .syftbox {{ background:#007bff; }}
+.source {{ font-size:10px; color:#666; margin-top:10px; }}
 </style></head><body>
 <div class="widget">
-    <div class="header"><h3 style="margin:0">🕐 Live Time</h3></div>
+    <div class="header"><h3 style="margin:0">⚡ System Monitor</h3></div>
     <div class="content">
         <div class="time-display" id="time-display">{current_time}</div>
+        <div class="cpu-display" id="cpu-display">CPU: {cpu_load}%</div>
         <div>Mode: <span class="mode {server_type}" id="mode-display">{server_type.title()}</span></div>
+        <div class="source" id="source-display">Source: {source}</div>
     </div>
 </div>
 <script>
-async function updateTime() {{
+async function updateSystem() {{
     try {{
         for (let port = 8000; port <= 8010; port++) {{
             try {{
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 500);
-                const resp = await fetch(`http://localhost:${{port}}/api/time`, {{
+                const resp = await fetch(`http://localhost:${{port}}/api/system`, {{
                     mode: 'cors',
                     signal: controller.signal
                 }});
@@ -90,27 +110,32 @@ async function updateTime() {{
                 
                 if (resp.ok) {{
                     const data = await resp.json();
-                    document.getElementById('time-display').textContent = data.formatted;
+                    document.getElementById('time-display').textContent = data.formatted_time;
+                    document.getElementById('cpu-display').textContent = `CPU: ${{data.cpu_load}}%`;
                     document.getElementById('mode-display').textContent = 'Thread';
                     document.getElementById('mode-display').className = 'mode thread';
-                    console.log('✅ Connected to Thread server on port', port);
+                    document.getElementById('source-display').textContent = `Source: ${{data.source}} (PID: ${{data.server_pid}})`;
+                    console.log('✅ Connected to Thread server on port', port, 'Data:', data);
                     return;
                 }}
             }} catch(e) {{
                 // Port not available, continue to next
+                console.log(`Port ${{port}}: ${{e.message}}`);
                 continue;
             }}
         }}
-        // Fallback to local time if no server
+        // Fallback - browser can only do time, not CPU
         document.getElementById('time-display').textContent = new Date().toLocaleTimeString();
+        document.getElementById('cpu-display').textContent = 'CPU: N/A (browser fallback)';
         document.getElementById('mode-display').textContent = 'Checkpoint';
         document.getElementById('mode-display').className = 'mode checkpoint';
+        document.getElementById('source-display').textContent = 'Source: BROWSER';
         console.log('📁 Using Checkpoint mode - no server found');
     }} catch(e) {{
-        console.error('❌ Error in updateTime:', e);
+        console.error('❌ Error in updateSystem:', e);
     }}
 }}
-setInterval(updateTime, 1000);
+setInterval(updateSystem, 1000);
 </script></body></html>'''
         
         return f'<iframe src="data:text/html;base64,{base64.b64encode(html.encode()).decode()}" width="100%" height="200" frameborder="0" style="border:none;border-radius:8px;"></iframe>'
@@ -119,7 +144,7 @@ setInterval(updateTime, 1000);
         return "// Iframe handles updates internally"
 
 # Use it
-widget = TimeWidget()
+widget = SystemWidget()
 widget
 
 # To see live mode switching, start the thread server:
