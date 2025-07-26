@@ -87,7 +87,7 @@ def get_current_registry():
 
 
 def start_infrastructure(thread_port: int = 8001, syftbox_port: int = 8002, mode: str = "auto", 
-                        app_name: str = "syft-widget", repo_url: str = "https://github.com/OpenMined/syft-widget"):
+                        app_name: str = "syft-widget", repo_url: str = "https://github.com/OpenMined/syft-widget", verbose: bool = True):
     """Convenience function to start the infrastructure
     
     This function is resilient to being called multiple times and will properly
@@ -102,21 +102,33 @@ def start_infrastructure(thread_port: int = 8001, syftbox_port: int = 8002, mode
             - auto: Detect based on environment
         app_name: Name of the SyftBox app to manage (default: "syft-widget")
         repo_url: GitHub repository URL for the app (default: "https://github.com/OpenMined/syft-widget")
+        verbose: Whether to show startup logs (default: True)
     """
-    # Stop any existing infrastructure first to ensure clean restart
-    _registry.stop()
+    # Suppress output if not verbose
+    if not verbose:
+        import io, sys
+        old_stdout = sys.stdout
+        sys.stdout = io.StringIO()
     
-    # Reset internal state flags that might be stuck
-    if hasattr(_registry, '_widget') and _registry._widget:
-        _registry._widget._starting_thread_server = False
-        _registry._widget._stop_monitoring = True
-    
-    # Wait a moment for cleanup to complete
-    import time
-    time.sleep(1)
-    
-    # Start fresh
-    _registry.start(thread_port, syftbox_port, mode, app_name, repo_url)
+    try:
+        # Stop any existing infrastructure first to ensure clean restart
+        _registry.stop()
+        
+        # Reset internal state flags that might be stuck
+        if hasattr(_registry, '_widget') and _registry._widget:
+            _registry._widget._starting_thread_server = False
+            _registry._widget._stop_monitoring = True
+        
+        # Wait a moment for cleanup to complete
+        import time
+        time.sleep(1)
+        
+        # Start fresh
+        _registry.start(thread_port, syftbox_port, mode, app_name, repo_url)
+    finally:
+        # Restore stdout if it was suppressed
+        if not verbose:
+            sys.stdout = old_stdout
 
 
 def stop_infrastructure():

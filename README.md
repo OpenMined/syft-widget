@@ -182,19 +182,8 @@ setInterval(updateSystem, 1000);
         if self.start_infra:
             try:
                 from syft_widget.widget_registry import start_infrastructure
-                # Temporarily suppress output if not verbose
-                if not self.verbose:
-                    import io, sys
-                    old_stdout = sys.stdout
-                    sys.stdout = io.StringIO()
-                
-                start_infrastructure()
-                
-                if not self.verbose:
-                    sys.stdout = old_stdout
+                start_infrastructure(verbose=self.verbose)
             except Exception as e:
-                if not self.verbose:
-                    sys.stdout = old_stdout
                 if self.verbose:
                     print(f"Warning: Could not start infrastructure: {e}")
         
