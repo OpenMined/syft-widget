@@ -39,14 +39,15 @@
 
             <!-- Code Example - Hero -->
             <div style="margin: 3rem 0;">
-                <pre style="background: #2d3748; color: #e2e8f0; padding: 2rem 2rem; border-radius: 12px; font-size: 1.5rem; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace; line-height: 1.4; display: inline-block; text-align: left; width: 400px; box-sizing: border-box;"><code class="language-python">from syft_widget import APIDisplay
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 2rem 2rem; border-radius: 12px; font-size: 1.5rem; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace; line-height: 1.4; display: inline-block; text-align: left; width: 440px; box-sizing: border-box;"><code class="language-python">from syft_widget import APIDisplay
 
-class MyWidget(APIDisplay):
+class LiveWidget(APIDisplay):
     def __init__(self):
         super().__init__(endpoints=[])
     
     def render_content(self, data, server_type):
-        return "✨ Live updating!"</code></pre>
+        modes = {"checkpoint": "📁", "thread": "🧵", "syftbox": "📦"}
+        return f"{modes.get(server_type, '✨')} Live updating!"</code></pre>
             </div>
         </div>
     </section>

@@ -29,24 +29,63 @@ pip install syft-widget
 Create a resilient widget in just a few lines:
 
 ```python
-from syft_widget import APIDisplay, register_endpoint
+from syft_widget import APIDisplay
 
-# First, create an endpoint for your data
-@register_endpoint("/api/my_data")
-def get_my_data(request):
-    return {"message": "Live updating data!", "timestamp": "2024-01-20 10:30:00"}
-
-# Then create a widget that uses it
-class MyWidget(APIDisplay):
+class SimpleWidget(APIDisplay):
     def __init__(self):
-        super().__init__(endpoints=["/api/my_data"])
+        super().__init__(endpoints=[])  # No endpoints needed for simple widgets
     
     def render_content(self, data, server_type="checkpoint"):
-        msg = data.get("/api/my_data", {}).get("message", "Loading...")
-        return f"<h2>📊 {msg}</h2>"
+        # Shows different content based on connection mode
+        mode_info = {
+            "checkpoint": ("📁", "Using cached data"),
+            "thread": ("🧵", "Connected to dev server"), 
+            "syftbox": ("📦", "Connected to SyftBox")
+        }
+        icon, status = mode_info.get(server_type, ("❓", "Unknown"))
+        
+        return f"""
+        <div style="padding: 20px; border: 2px solid #ccc; border-radius: 8px;">
+            <h2>{icon} Live Widget Dashboard</h2>
+            <p>Status: <strong>{status}</strong></p>
+            <p>This widget automatically switches between modes!</p>
+        </div>
+        """
 
 # Automatically works in all three modes
-widget = MyWidget()
+widget = SimpleWidget()
+widget  # Display in Jupyter
+```
+
+For widgets that use data from endpoints:
+
+```python
+from syft_widget import APIDisplay, register_endpoint
+
+# Create an endpoint (note: request parameter is optional for checkpoint mode)
+@register_endpoint("/api/stats")
+def get_stats(request=None):
+    return {"users": 42, "files": 128, "status": "healthy"}
+
+class DashboardWidget(APIDisplay):
+    def __init__(self):
+        super().__init__(endpoints=["/api/stats"])
+    
+    def render_content(self, data, server_type="checkpoint"):
+        stats = data.get("/api/stats", {})
+        users = stats.get("users", 0)
+        files = stats.get("files", 0)
+        
+        return f"""
+        <div style="padding: 20px; background: #f0f0f0; border-radius: 8px;">
+            <h2>📊 System Dashboard</h2>
+            <p>👥 Active Users: <strong>{users}</strong></p>
+            <p>📁 Total Files: <strong>{files}</strong></p>
+            <p>Mode: {server_type}</p>
+        </div>
+        """
+
+widget = DashboardWidget()
 widget  # Display in Jupyter
 ```
 
