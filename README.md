@@ -264,7 +264,7 @@ class SystemDashboard(APIDisplay):
                 }}
                 
                 // Initial load
-                updateMetrics({data.get("/api/metrics", {{"cpu": 45, "memory": 72, "disk": 89}})}, '{server_type}');
+                updateMetrics({data.get("/api/metrics", {"cpu": 45, "memory": 72, "disk": 89})}, '{server_type}');
                 
                 // Start polling
                 setInterval(updateDisplay, 1000);
