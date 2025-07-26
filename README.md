@@ -33,12 +33,22 @@ Create a live dashboard widget that monitors system metrics:
 ```python
 from syft_widget import APIDisplay, register_endpoint
 
-# Define endpoints for your data
+# First, write the endpoint to a file (required for thread server)
+endpoint_code = '''
+from syft_widget import register_endpoint
+
 @register_endpoint("/api/metrics")
 def get_metrics(request=None):
     # In production: reads real system metrics
     # In checkpoint mode: returns mock data
     return {"cpu": 45, "memory": 72, "disk": 89}
+'''
+
+with open("dashboard_endpoints.py", "w") as f:
+    f.write(endpoint_code)
+
+# Import the endpoint from the file
+import dashboard_endpoints
 
 # Create a dashboard widget
 class SystemDashboard(APIDisplay):
