@@ -96,36 +96,73 @@ body {{ margin:0; font-family:Arial; background:#f5f5f5; }}
     </div>
 </div>
 <script>
+let connectedPort = null;
+let consecutiveFailures = 0;
+
+async function tryPort(port) {{
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 500);
+    try {{
+        const resp = await fetch(`http://localhost:${{port}}/api/system`, {{
+            mode: 'cors',
+            signal: controller.signal
+        }});
+        clearTimeout(timeoutId);
+        return resp.ok ? resp : null;
+    }} catch(e) {{
+        clearTimeout(timeoutId);
+        return null;
+    }}
+}}
+
 async function updateSystem() {{
     try {{
-        for (let port = 8000; port <= 8010; port++) {{
-            try {{
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 500);
-                const resp = await fetch(`http://localhost:${{port}}/api/system`, {{
-                    mode: 'cors',
-                    signal: controller.signal
-                }});
-                clearTimeout(timeoutId);
+        // If we have a connected port, try it first
+        if (connectedPort) {{
+            const resp = await tryPort(connectedPort);
+            if (resp) {{
+                const data = await resp.json();
+                document.getElementById('time-display').textContent = data.formatted_time;
+                document.getElementById('cpu-display').textContent = `CPU: ${{data.cpu_load}}%`;
+                document.getElementById('mode-display').textContent = 'Thread';
+                document.getElementById('mode-display').className = 'mode thread';
+                document.getElementById('source-display').textContent = `Source: ${{data.source}} (PID: ${{data.server_pid}})`;
+                consecutiveFailures = 0;
+                return;
+            }} else {{
+                consecutiveFailures++;
+                console.log(`⚠️ Lost connection to port ${{connectedPort}} (failure ${{consecutiveFailures}})`);
                 
-                if (resp.ok) {{
+                // After 3 failures, start scanning for new ports
+                if (consecutiveFailures >= 3) {{
+                    console.log('🔄 Starting port scan after connection loss');
+                    connectedPort = null;
+                    consecutiveFailures = 0;
+                }}
+            }}
+        }}
+        
+        // Scan for servers (only if no connected port or connection lost)
+        if (!connectedPort) {{
+            console.log('🔍 Scanning ports 8000-8010...');
+            for (let port = 8000; port <= 8010; port++) {{
+                const resp = await tryPort(port);
+                if (resp) {{
                     const data = await resp.json();
+                    connectedPort = port;
+                    consecutiveFailures = 0;
+                    
                     document.getElementById('time-display').textContent = data.formatted_time;
                     document.getElementById('cpu-display').textContent = `CPU: ${{data.cpu_load}}%`;
                     document.getElementById('mode-display').textContent = 'Thread';
                     document.getElementById('mode-display').className = 'mode thread';
                     document.getElementById('source-display').textContent = `Source: ${{data.source}} (PID: ${{data.server_pid}})`;
-                    console.log('✅ Connected to Thread server on port', port, 'Data:', data);
+                    console.log(`✅ Connected to Thread server on port ${{port}}`);
                     return;
                 }}
-            }} catch(e) {{
-                // Port not available, continue to next
-                console.log(`Port ${{port}}: ${{e.message}}`);
-                continue;
             }}
+            console.log('📁 No server found - staying in checkpoint mode');
         }}
-        // No server found - keep showing checkpoint data
-        console.log('📁 No server found - staying in checkpoint mode');
     }} catch(e) {{
         console.error('❌ Error in updateSystem:', e);
     }}
