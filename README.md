@@ -29,25 +29,25 @@ pip install syft-widget
 Create a resilient widget in just a few lines:
 
 ```python
-from syft_widget import APIDisplay
+from syft_widget import APIDisplay, register_endpoint
 
+# First, create an endpoint for your data
+@register_endpoint("/api/my_data")
+def get_my_data(request):
+    return {"message": "Live updating data!", "timestamp": "2024-01-20 10:30:00"}
+
+# Then create a widget that uses it
 class MyWidget(APIDisplay):
-    def render(self):
-        return "<h2>📊 Live updating data!</h2>"
+    def __init__(self):
+        super().__init__(endpoints=["/api/my_data"])
+    
+    def render_content(self, data, server_type="checkpoint"):
+        msg = data.get("/api/my_data", {}).get("message", "Loading...")
+        return f"<h2>📊 {msg}</h2>"
 
 # Automatically works in all three modes
 widget = MyWidget()
 widget  # Display in Jupyter
-```
-
-Add REST APIs with a simple decorator:
-
-```python
-from syft_widget import register_endpoint
-
-@register_endpoint("/api/data")
-def get_data(request):
-    return {"files": ["data1.csv", "data2.csv"]}
 ```
 
 ## 📚 Documentation

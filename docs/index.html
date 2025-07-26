@@ -42,7 +42,10 @@
                 <pre style="background: #2d3748; color: #e2e8f0; padding: 2rem 2rem; border-radius: 12px; font-size: 1.5rem; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace; line-height: 1.4; display: inline-block; text-align: left; width: 400px; box-sizing: border-box;"><code class="language-python">from syft_widget import APIDisplay
 
 class MyWidget(APIDisplay):
-    def render(self):
+    def __init__(self):
+        super().__init__(endpoints=[])
+    
+    def render_content(self, data, server_type):
         return "✨ Live updating!"</code></pre>
             </div>
         </div>
@@ -284,10 +287,12 @@ widget = MyWidget(mode="checkpoint")  # Shows last saved state
                         <pre><code class="language-python">from syft_widget import APIDisplay
 
 class BirdWidget(APIDisplay):
-    def render(self):
-        # Read files, process data
-        sightings = self.get_sightings()
-        return f"<h2>🦜 {len(sightings)} birds</h2>"</code></pre>
+    def __init__(self):
+        super().__init__(endpoints=["/api/birds"])
+    
+    def render_content(self, data, server_type):
+        birds = data.get("/api/birds", {}).get("count", 0)
+        return f"<h2>🦜 {birds} birds spotted</h2>"</code></pre>
                     </div>
                     
                     <div class="api-example">
