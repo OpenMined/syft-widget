@@ -57,6 +57,7 @@ class SystemDashboard(APIDisplay):
     
     def render_content(self, data, server_type="checkpoint"):
         import base64
+        import json
         
         # Create complete HTML page for iframe
         iframe_html = f'''
@@ -264,7 +265,7 @@ class SystemDashboard(APIDisplay):
                 }}
                 
                 // Initial load
-                updateMetrics({data.get("/api/metrics", {"cpu": 45, "memory": 72, "disk": 89})}, '{server_type}');
+                updateMetrics({json.dumps(data.get("/api/metrics", {"cpu": 45, "memory": 72, "disk": 89}))}, '{server_type}');
                 
                 // Start polling
                 setInterval(updateDisplay, 1000);
