@@ -90,6 +90,9 @@ def start_infrastructure(thread_port: int = 8001, syftbox_port: int = 8002, mode
                         app_name: str = "syft-widget", repo_url: str = "https://github.com/OpenMined/syft-widget"):
     """Convenience function to start the infrastructure
     
+    This function is resilient to being called multiple times and will properly
+    restart the infrastructure if it's been stopped or interrupted.
+    
     Args:
         thread_port: Port for the thread server (default: 8001)
         syftbox_port: Deprecated, kept for compatibility
@@ -100,6 +103,19 @@ def start_infrastructure(thread_port: int = 8001, syftbox_port: int = 8002, mode
         app_name: Name of the SyftBox app to manage (default: "syft-widget")
         repo_url: GitHub repository URL for the app (default: "https://github.com/OpenMined/syft-widget")
     """
+    # Stop any existing infrastructure first to ensure clean restart
+    _registry.stop()
+    
+    # Reset internal state flags that might be stuck
+    if hasattr(_registry, '_widget') and _registry._widget:
+        _registry._widget._starting_thread_server = False
+        _registry._widget._stop_monitoring = True
+    
+    # Wait a moment for cleanup to complete
+    import time
+    time.sleep(1)
+    
+    # Start fresh
     _registry.start(thread_port, syftbox_port, mode, app_name, repo_url)
 
 
