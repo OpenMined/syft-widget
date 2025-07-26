@@ -39,27 +39,41 @@
 
             <!-- Code Example - Hero -->
             <div style="margin: 3rem 0;">
-                <pre style="background: #2d3748; color: #e2e8f0; padding: 1.5rem 2rem; border-radius: 12px; font-size: 1.1rem; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace; line-height: 1.5; display: inline-block; text-align: left; width: 520px; box-sizing: border-box;"><code class="language-python">from syft_widget import APIDisplay, register_endpoint
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 1.5rem 2rem; border-radius: 12px; font-size: 0.95rem; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace; line-height: 1.5; display: inline-block; text-align: left; width: 580px; box-sizing: border-box;"><code class="language-python">from syft_widget import APIDisplay, register_endpoint
 
-@register_endpoint("/api/metrics")
-def get_metrics(request=None):
-    return {"cpu": 45, "memory": 72, "disk": 23}
+@register_endpoint("/api/stats")
+def get_stats(request=None):
+    return {"active_users": 42, "total_files": 1337}
 
-class MetricsWidget(APIDisplay):
+class DashboardWidget(APIDisplay):
     def __init__(self):
-        super().__init__(endpoints=["/api/metrics"])
+        super().__init__(endpoints=["/api/stats"])
     
     def render_content(self, data, server_type):
-        metrics = data.get("/api/metrics", {})
-        mode = {"checkpoint": "📁", "thread": "🧵", "syftbox": "📦"}
+        stats = data.get("/api/stats", {})
+        mode = {"checkpoint": "📁", "thread": "🧵", "syftbox": "📦"}[server_type]
         
-        return f"""
-        <div style="border: 1px solid #ddd; padding: 15px;">
-            <h3>System Metrics {mode.get(server_type, '')}</h3>
-            <div>CPU: {metrics.get('cpu', 0)}%</div>
-            <div>Memory: {metrics.get('memory', 0)}%</div>
-        </div>
-        """</code></pre>
+        return f'''<div style="border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+            <h3>📊 Live Dashboard <span style="float: right; font-size: 14px; 
+                background: #007bff; color: white; padding: 2px 8px; 
+                border-radius: 12px;">{mode} Mode</span></h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div style="text-align: center; padding: 15px; background: #f8f9fa; 
+                            border-radius: 8px;">
+                    <div style="font-size: 32px; font-weight: bold; color: #28a745;">
+                        {stats.get("active_users", 0)}
+                    </div>
+                    <div style="color: #666; font-size: 14px;">Active Users</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: #f8f9fa; 
+                            border-radius: 8px;">
+                    <div style="font-size: 32px; font-weight: bold; color: #17a2b8;">
+                        {stats.get("total_files", 0)}
+                    </div>
+                    <div style="color: #666; font-size: 14px;">Total Files</div>
+                </div>
+            </div>
+        </div>'''</code></pre>
             </div>
         </div>
     </section>

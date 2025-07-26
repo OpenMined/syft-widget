@@ -113,10 +113,85 @@ class SystemDashboard(APIDisplay):
             </div>
         </div>
         '''
+    
+    def get_update_script(self):
+        """Override to maintain widget HTML (prevents fallback to JSON)"""
+        return '''
+        // Get fresh data
+        const metrics = currentData['/api/metrics'] || {};
+        
+        // Mode styling
+        const modes = {"checkpoint": "📁", "thread": "🧵", "syftbox": "📦"};
+        const colors = {"checkpoint": "#6c757d", "thread": "#28a745", "syftbox": "#007bff"};
+        
+        // Generate mode buttons
+        let modeButtons = '';
+        Object.entries(modes).forEach(([mode, icon]) => {
+            const isActive = mode === currentServerType;
+            const bgColor = isActive ? colors[mode] : '#e9ecef';
+            const textColor = isActive ? 'white' : '#666';
+            
+            modeButtons += `<button style="background: ${bgColor}; 
+                                           color: ${textColor}; border: none; 
+                                           padding: 4px 12px; border-radius: 15px; font-size: 13px;">
+                                       ${icon} ${mode.charAt(0).toUpperCase() + mode.slice(1)}
+                                   </button>`;
+        });
+        
+        // Update widget with live data
+        element.innerHTML = `
+        <div style="border: 1px solid #ddd; border-radius: 8px; background: white; 
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-family: sans-serif;">
+            <div style="background: linear-gradient(135deg, #667eea, #764ba2); 
+                        color: white; padding: 15px;">
+                <h3 style="margin: 0;">📊 System Dashboard</h3>
+            </div>
+            <div style="background: #f8f9fa; padding: 10px; border-bottom: 1px solid #dee2e6;">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span style="font-size: 14px; color: #666;">Mode:</span>
+                    ${modeButtons}
+                </div>
+            </div>
+            <div style="padding: 20px;">
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>CPU Usage</span>
+                        <span style="font-weight: bold;">${metrics.cpu || 0}%</span>
+                    </div>
+                    <div style="background: #e9ecef; height: 20px; border-radius: 10px; overflow: hidden;">
+                        <div style="background: #28a745; width: ${metrics.cpu || 0}%; height: 100%;"></div>
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Memory</span>
+                        <span style="font-weight: bold;">${metrics.memory || 0}%</span>
+                    </div>
+                    <div style="background: #e9ecef; height: 20px; border-radius: 10px; overflow: hidden;">
+                        <div style="background: #17a2b8; width: ${metrics.memory || 0}%; height: 100%;"></div>
+                    </div>
+                </div>
+                <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Disk</span>
+                        <span style="font-weight: bold;">${metrics.disk || 0}%</span>
+                    </div>
+                    <div style="background: #e9ecef; height: 20px; border-radius: 10px; overflow: hidden;">
+                        <div style="background: #6f42c1; width: ${metrics.disk || 0}%; height: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+            <div style="background: #f8f9fa; padding: 10px; text-align: center; 
+                        font-size: 12px; color: #666;">
+                Live updates every 5 seconds • Connected to: ${currentServerType}
+            </div>
+        </div>
+        `;
+        '''
 
 # Use it in Jupyter
 widget = SystemDashboard()
-widget  # Shows interactive dashboard with mode buttons and progress bars
+widget  # Shows dashboard that stays as dashboard (no JSON replacement!)
 ```
 
 ## 📚 Documentation
