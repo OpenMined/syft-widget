@@ -191,7 +191,15 @@ class SystemDashboard(APIDisplay):
 
 # Use it in Jupyter
 widget = SystemDashboard()
-widget  # Shows dashboard that stays as dashboard (no JSON replacement!)
+widget  # Shows dashboard in checkpoint mode (📁 Mock Data)
+
+# To see live mode switching, start the thread server:
+from syft_widget import start_infrastructure
+start_infrastructure()  # Widget will automatically switch to 🧵 Thread mode
+
+# To stop the server:
+# from syft_widget import stop_infrastructure
+# stop_infrastructure()
 ```
 
 ## 📚 Documentation
