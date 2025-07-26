@@ -124,13 +124,8 @@ async function updateSystem() {{
                 continue;
             }}
         }}
-        // Fallback - browser can only do time, not CPU
-        document.getElementById('time-display').textContent = new Date().toLocaleTimeString();
-        document.getElementById('cpu-display').textContent = 'CPU: N/A (browser fallback)';
-        document.getElementById('mode-display').textContent = 'Checkpoint';
-        document.getElementById('mode-display').className = 'mode checkpoint';
-        document.getElementById('source-display').textContent = 'Source: BROWSER';
-        console.log('📁 Using Checkpoint mode - no server found');
+        // No server found - keep showing checkpoint data
+        console.log('📁 No server found - staying in checkpoint mode');
     }} catch(e) {{
         console.error('❌ Error in updateSystem:', e);
     }}
