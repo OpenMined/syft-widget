@@ -179,6 +179,29 @@ setInterval(updateSystem, 1000);
         """Override to return only iframe, bypassing main widget JavaScript"""
         return self.render_content({}, "checkpoint")
 
+def restart_infrastructure():
+    """Properly restart the infrastructure after it's been stopped"""
+    from syft_widget.widget_registry import get_registry
+    
+    # Get the registry and force cleanup
+    registry = get_registry()
+    
+    # Stop any existing infrastructure
+    registry.stop()
+    
+    # Reset internal state
+    if hasattr(registry, '_widget') and registry._widget:
+        registry._widget._starting_thread_server = False
+        registry._widget._stop_monitoring = True
+    
+    # Wait a moment for cleanup
+    import time
+    time.sleep(1)
+    
+    # Start fresh
+    from syft_widget import start_infrastructure
+    start_infrastructure()
+
 # Use it
 widget = SystemWidget()
 widget
@@ -186,6 +209,9 @@ widget
 # To see live mode switching, start the thread server:
 from syft_widget import start_infrastructure
 start_infrastructure()  # Widget will automatically switch to 🧵 Thread mode and show live data
+
+# If start_infrastructure() stops working after interruption, use:
+# restart_infrastructure()
 ```
 
 ## 📚 Documentation
