@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>syft-widget - Build Resilient, Live-Updating Widget Systems</title>
+    <link rel="icon" type="image/svg+xml" href="images/syftbox-logo.svg">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav>
+            <div class="nav-wrapper">
+                <div class="logo-group">
+                    <img src="images/syftbox-logo.svg" alt="SyftBox" class="syftbox-logo">
+                    <a href="index.html" class="logo">syft-widget</a>
+                </div>
+                <div class="nav-links">
+                    <a href="https://colab.research.google.com/github/OpenMined/syft-widget/blob/main/notebooks/tutorial.ipynb" target="_blank">Try in Colab</a>
+                    <a href="api/index.html">API</a>
+                    <a href="https://github.com/OpenMined/syft-widget" class="github-link">GitHub</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <section class="hero" style="min-height: 100vh; display: flex; align-items: center; padding-top: 0; margin-top: -4rem;">
+        <div class="container" style="text-align: center; max-width: 600px; margin: 0 auto;">
+            <p style="font-size: 0.9rem; color: #a0aec0; margin: 2rem 0 1rem 0; font-weight: 400; letter-spacing: 0.5px;">widgets that never break</p>
+            
+            <!-- Install Command -->
+            <div class="install-section" style="margin: 2rem 0;">
+                <div class="install-command" style="width: 400px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem 1.5rem;">
+                    <code style="font-size: 1rem;">pip install syft-widget</code>
+                    <button class="copy-btn" data-copy="pip install syft-widget">Copy</button>
+                </div>
+            </div>
+
+            <!-- Code Example - Hero -->
+            <div style="margin: 3rem 0;">
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 2rem 2rem; border-radius: 12px; font-size: 1.5rem; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace; line-height: 1.4; display: inline-block; text-align: left; width: 400px; box-sizing: border-box;"><code class="language-python">from syft_widget import APIDisplay
+
+class MyWidget(APIDisplay):
+    def render(self):
+        return "✨ Live updating!"</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why We Built This -->
+    <section class="why-syftperm">
+        <div class="container">
+            <h2>Why We Built This</h2>
+            <p class="section-subtitle">widgets should be resilient</p>
+            
+            <div class="value-props">
+                <div class="value-prop">
+                    <h3>🚫 Widgets break</h3>
+                    <p>Traditional widgets fail when servers go down or networks disconnect. Your data visualization shouldn't depend on infrastructure.</p>
+                </div>
+                <div class="value-prop">
+                    <h3>🏢 Updates are hard</h3>
+                    <p>Getting live updates from filesystems into Jupyter notebooks requires complex setup. It should be one line of code.</p>
+                </div>
+                <div class="value-prop">
+                    <h3>⛓️ Deployment is painful</h3>
+                    <p>Moving from notebook prototype to production deployment involves rewriting everything. The same widget should work everywhere.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- See It In Action -->
+    <section class="video-demo">
+        <div class="container">
+            <h2>See It In Action</h2>
+            <p class="section-subtitle">automatic resilience in action</p>
+            
+            <style>
+                .demo-tabs {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                }
+                .tab-pane {
+                    display: none;
+                    background: white;
+                    border: 1px solid #d1d1d6;
+                    border-radius: 0 8px 8px 8px;
+                    padding: 2rem;
+                    margin-top: -1px;
+                }
+                .tab-pane.active {
+                    display: block;
+                }
+                .tab-nav {
+                    display: flex;
+                    gap: 0;
+                    margin-bottom: 0;
+                    border-bottom: 1px solid #d1d1d6;
+                }
+                .tab-btn {
+                    padding: 0.75rem 1.5rem;
+                    background: #f5f5f7;
+                    border: 1px solid #d1d1d6;
+                    border-bottom: none;
+                    border-radius: 8px 8px 0 0;
+                    cursor: pointer;
+                    font-size: 0.95rem;
+                    color: #6e6e73;
+                    position: relative;
+                    margin-right: -1px;
+                    transition: all 0.2s;
+                }
+                .tab-btn:first-child {
+                    border-radius: 8px 0 0 0;
+                }
+                .tab-btn:hover {
+                    background: #e8e8ed;
+                }
+                .tab-btn.active {
+                    background: white;
+                    color: #1d1d1f;
+                    font-weight: 600;
+                    z-index: 1;
+                    border-bottom: 1px solid white;
+                    margin-bottom: -1px;
+                }
+                .video-container h3 {
+                    margin-top: 0;
+                    margin-bottom: 1rem;
+                    font-size: 1.3rem;
+                }
+                .video-container p {
+                    margin-bottom: 1.5rem;
+                    color: #6e6e73;
+                }
+                .video-container {
+                    height: 450px;
+                    width: 100%;
+                    max-width: 800px;
+                    margin: 0 auto;
+                    display: flex;
+                    align-items: flex-start;
+                    justify-content: center;
+                    background: white;
+                    border-radius: 8px;
+                    padding: 1rem;
+                    box-sizing: border-box;
+                }
+                
+                /* Full width for Magic tab */
+                #magic .video-container {
+                    max-width: none;
+                    width: 100vw;
+                    margin-left: calc(50% - 50vw);
+                    border-radius: 0;
+                    background: #000;
+                    padding: 0;
+                }
+                
+                #magic .video-container iframe {
+                    width: 100%;
+                    height: 100%;
+                }
+                .video-container video {
+                    border-radius: 8px;
+                    background: #000;
+                    max-height: 400px;
+                    max-width: 100%;
+                    object-fit: contain;
+                }
+            </style>
+            
+            <div class="demo-tabs">
+                <div class="tab-nav">
+                    <button class="tab-btn active" data-tab="resilience">Resilience</button>
+                    <button class="tab-btn" data-tab="live">Live Updates</button>
+                    <button class="tab-btn" data-tab="api">REST APIs</button>
+                    <button class="tab-btn" data-tab="magic">Super Widget</button>
+                </div>
+                
+                <div class="tab-content">
+                    <div class="tab-pane active" id="resilience">
+                        <div class="video-container">
+                            <video width="100%" controls preload="metadata" muted loop poster="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KUGF0aCBkPSJNOCA1VjE5TDE5IDEyTDggNVoiIGZpbGw9IiM2NjY2NjYiLz4KPC9zdmc+Cg==">
+                                <source src="videos/resilience_demo.mp4" type="video/mp4">
+                                <source src="https://raw.githubusercontent.com/OpenMined/syft-widget/main/docs/videos/resilience_demo.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane" id="live">
+                        <div class="video-container">
+                            <video width="100%" controls preload="metadata" muted loop poster="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KUGF0aCBkPSJNOCA1VjE5TDE5IDEyTDggNVoiIGZpbGw9IiM2NjY2NjYiLz4KPC9zdmc+Cg==">
+                                <source src="videos/live_updates.mp4" type="video/mp4">
+                                <source src="https://raw.githubusercontent.com/OpenMined/syft-widget/main/docs/videos/live_updates.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane" id="api">
+                        <div class="video-container">
+                            <video width="100%" controls preload="metadata" muted loop poster="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KUGF0aCBkPSJNOCA1VjE5TDE5IDEyTDggNVoiIGZpbGw9IiM2NjY2NjYiLz4KPC9zdmc+Cg==">
+                                <source src="videos/api_demo.mp4" type="video/mp4">
+                                <source src="https://raw.githubusercontent.com/OpenMined/syft-widget/main/docs/videos/api_demo.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane" id="magic">
+                        <div class="video-container">
+                            <iframe id="magic-video" width="100%" height="400" 
+                                    src="https://www.youtube.com/embed/dQw4w9WgXcQ?enablejsapi=1"
+                                    title="Magic Demo" frameborder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dark Section Wrapper - Contains all dark sections with roaming spotlights -->
+    <div class="dark-section-wrapper">
+        <!-- Under the Hood -->
+        <section class="under-the-hood">
+            <div class="container">
+                <h2>Under the Hood</h2>
+                <p class="section-subtitle">Three-mode architecture for ultimate resilience</p>
+                
+                <div class="code-showcase">
+                    <pre><code class="language-python"># Mode 1: SyftBox (Preferred)
+widget = MyWidget()  # Automatically connects to SyftBox infrastructure
+# ✅ Live filesystem monitoring
+# ✅ Multi-client support
+# ✅ Auto-deployment from GitHub
+
+# Mode 2: Thread (Automatic Fallback)
+widget = MyWidget(mode="thread")  # Python thread monitors files
+# ✅ Works without infrastructure
+# ✅ Seamless handoff to SyftBox
+# ✅ Local file watching
+
+# Mode 3: Checkpoint (Last Resort)
+widget = MyWidget(mode="checkpoint")  # Shows last saved state
+# ✅ Never shows errors
+# ✅ Manual refresh available
+# ✅ Cached data persistence</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- Complete API -->
+        <section class="api-preview-dark">
+            <div class="container">
+                <h2>The Complete API</h2>
+                <p class="section-subtitle">build widgets and APIs with minimal code</p>
+                
+                <style>
+                    .api-examples {
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 2rem;
+                    }
+                    .api-example {
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    .api-example pre {
+                        flex: 1;
+                        display: flex;
+                        align-items: center;
+                    }
+                </style>
+                
+                <div class="api-examples">
+                    <div class="api-example">
+                        <h3>Create a Widget</h3>
+                        <pre><code class="language-python">from syft_widget import APIDisplay
+
+class BirdWidget(APIDisplay):
+    def render(self):
+        # Read files, process data
+        sightings = self.get_sightings()
+        return f"<h2>🦜 {len(sightings)} birds</h2>"</code></pre>
+                    </div>
+                    
+                    <div class="api-example">
+                        <h3>Add REST APIs</h3>
+                        <pre><code class="language-python">from syft_widget import register_endpoint
+
+@register_endpoint("/api/birds")
+def get_birds(request):
+    return {"birds": load_bird_data()}
+
+@register_endpoint("/api/add", methods=["POST"])
+def add_bird(request):
+    save_bird(request.json)
+    return {"success": True}</code></pre>
+                    </div>
+                    
+                    <div class="api-example">
+                        <h3>Package Creation</h3>
+                        <pre><code class="language-python">from syft_widget import create_package
+
+package_dir = create_package(
+    "my-widget",
+    "github_username",
+    display_name="My Widget"
+)</code></pre>
+                    </div>
+                    
+                    <div class="api-example">
+                        <h3>Deploy Anywhere</h3>
+                        <pre><code class="language-python"># Same code works in:
+# ✅ Jupyter notebooks
+# ✅ Google Colab
+# ✅ SyftBox infrastructure
+# ✅ Standalone servers
+
+widget = MyWidget()  # Just works!</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Try It Out - Apple Style -->
+        <section class="try-it-out">
+            <div class="container">
+                <div style="max-width: 600px; margin: 0 auto; text-align: center;">
+                    <h2 style="font-size: 3rem; font-weight: 600; color: white; margin-bottom: 2rem; letter-spacing: -0.02em;">try it out</h2>
+                    <p style="font-size: 1.3rem; color: rgba(255, 255, 255, 0.8); margin-bottom: 3rem;">build your first resilient widget in google colab</p>
+                    <a href="https://colab.research.google.com/github/OpenMined/syft-widget/blob/main/notebooks/tutorial.ipynb" 
+                       style="display: inline-block; background: white; color: #0a0a0a; padding: 1rem 2rem; border-radius: 980px; text-decoration: none; font-size: 1.1rem; font-weight: 500; transition: all 0.2s; border: none;" 
+                       onmouseover="this.style.background='rgba(255,255,255,0.9)'" 
+                       onmouseout="this.style.background='white'">open in colab</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Newsletter Section -->
+        <section class="newsletter-section-dark">
+            <div class="container">
+                <div class="newsletter-content">
+                    <h2>Stay Updated</h2>
+                    <p>Get notified about new features and updates to syft-widget</p>
+                    
+                    <!-- HubSpot Form -->
+                    <div id="hubspot-form-container"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer-dark">
+            <div class="container">
+                <p>Built with ❤️ by <a href="https://openmined.org">OpenMined</a></p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        // Tab functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            
+            // Autoplay the default active video (Resilience tab)
+            setTimeout(() => {
+                const defaultActiveVideo = document.querySelector('.tab-pane.active video');
+                if (defaultActiveVideo) {
+                    defaultActiveVideo.play().catch(e => {
+                        console.log('Autoplay prevented on page load:', e);
+                    });
+                }
+            }, 500); // Small delay to ensure video is loaded
+            
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const targetTab = this.getAttribute('data-tab');
+                    
+                    // Remove active class from all buttons and panes
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    tabPanes.forEach(p => p.classList.remove('active'));
+                    
+                    // Add active class to clicked button and corresponding pane
+                    this.classList.add('active');
+                    const targetPane = document.getElementById(targetTab);
+                    targetPane.classList.add('active');
+                    
+                    // Pause all videos first
+                    document.querySelectorAll('video').forEach(video => {
+                        video.pause();
+                    });
+                    
+                    // Pause magic video
+                    const magicIframe = document.getElementById('magic-video');
+                    if (magicIframe) {
+                        magicIframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                    }
+                    
+                    // Handle autoplay for each tab
+                    if (targetTab === 'magic') {
+                        // Use postMessage to play the magic video
+                        setTimeout(() => {
+                            const iframe = document.getElementById('magic-video');
+                            if (iframe) {
+                                iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                            }
+                        }, 100);
+                    } else {
+                        // Find and autoplay the video in the active tab
+                        const activeVideo = targetPane.querySelector('video');
+                        if (activeVideo) {
+                            setTimeout(() => {
+                                activeVideo.play().catch(e => {
+                                    // Autoplay failed, user needs to interact first
+                                    console.log('Autoplay prevented:', e);
+                                });
+                            }, 100);
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+    
+    <!-- HubSpot Forms Script -->
+    <script charset="utf-8" type="text/javascript" src="//js.hsforms.net/forms/embed/v2.js"></script>
+    <script>
+        hbspt.forms.create({
+            region: "na1",
+            portalId: "6487402",
+            formId: "b7a08fdc-0fb5-4938-99e8-4a09e7bbc09e",
+            target: "#hubspot-form-container",
+            css: "",
+            cssClass: "newsletter-hubspot-form",
+            onFormReady: function(form) {
+                // Function to apply all styles
+                function applyFormStyles() {
+                    const formElement = document.querySelector('#hubspot-form-container form');
+                    if (!formElement) return;
+                    
+                    // Hide all labels (we'll use placeholders)
+                    formElement.querySelectorAll('label').forEach(label => {
+                        if (!label.querySelector('input[type="checkbox"]')) {
+                            label.style.display = 'none';
+                        }
+                    });
+                    
+                    // Fix the name field layout by finding the actual field groups
+                    const fieldGroups = formElement.querySelectorAll('.hs-form-field');
+                    let firstNameGroup = null;
+                    let lastNameGroup = null;
+                    
+                    fieldGroups.forEach(group => {
+                        if (group.querySelector('input[name="firstname"]')) firstNameGroup = group;
+                        if (group.querySelector('input[name="lastname"]')) lastNameGroup = group;
+                    });
+                    
+                    if (firstNameGroup && lastNameGroup) {
+                        // Create a container for both name fields
+                        const nameContainer = document.createElement('div');
+                        nameContainer.style.cssText = 'display: flex; gap: 1rem; margin-bottom: 0.5rem;';
+                        
+                        // Insert the container
+                        firstNameGroup.parentNode.insertBefore(nameContainer, firstNameGroup);
+                        
+                        // Move both field groups into the container
+                        nameContainer.appendChild(firstNameGroup);
+                        nameContainer.appendChild(lastNameGroup);
+                        
+                        // Style the field groups
+                        [firstNameGroup, lastNameGroup].forEach(group => {
+                            group.style.cssText = 'flex: 1; margin: 0;';
+                        });
+                    }
+                    
+                    // Style all inputs with more specific selectors
+                    formElement.querySelectorAll('input[type="text"], input[type="email"], textarea').forEach(el => {
+                        el.style.cssText = `
+                            width: 100% !important;
+                            padding: 12px 16px !important;
+                            font-size: 1rem !important;
+                            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                            border-radius: 12px !important;
+                            background: rgba(255, 255, 255, 0.05) !important;
+                            color: white !important;
+                            box-sizing: border-box !important;
+                            margin: 0 !important;
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                        `;
+                        
+                        // Add placeholders
+                        if (el.name === 'firstname') el.placeholder = 'First name';
+                        if (el.name === 'lastname') el.placeholder = 'Last name';
+                        if (el.name === 'email') el.placeholder = 'Email address';
+                    });
+                    
+                    // Style submit button
+                    formElement.querySelectorAll('input[type="submit"]').forEach(el => {
+                        el.style.cssText = `
+                            background: white !important;
+                            color: #0a0a0a !important;
+                            border: none !important;
+                            padding: 12px 32px !important;
+                            border-radius: 980px !important;
+                            font-size: 1rem !important;
+                            font-weight: 500 !important;
+                            cursor: pointer !important;
+                            width: auto !important;
+                            margin-top: 1rem !important;
+                        `;
+                    });
+                    
+                    // Style form groups to remove default margins
+                    formElement.querySelectorAll('.hs-form-field').forEach(field => {
+                        field.style.marginBottom = '0';
+                    });
+                    
+                    // Fix email field group specifically
+                    const emailGroup = formElement.querySelector('.hs_email');
+                    if (emailGroup) {
+                        emailGroup.style.marginBottom = '0.5rem';
+                        emailGroup.style.marginTop = '0';
+                    }
+                    
+                    // Fix ALL text elements
+                    formElement.querySelectorAll('.hs-richtext p, .hs-richtext span, .hs-richtext em, .hs-richtext i').forEach(el => {
+                        el.style.cssText = `
+                            color: rgba(255, 255, 255, 0.6) !important;
+                            font-style: normal !important;
+                            font-weight: normal !important;
+                            font-size: 0.9rem !important;
+                            line-height: 1.6 !important;
+                            margin: 0.5rem 0 !important;
+                        `;
+                    });
+                    
+                    // Style legal text
+                    formElement.querySelectorAll('.legal-consent-container').forEach(el => {
+                        el.style.cssText = `
+                            margin-top: 1rem !important;
+                            color: rgba(255, 255, 255, 0.6) !important;
+                            font-size: 0.9rem !important;
+                        `;
+                    });
+                    
+                    // Fix checkboxes and their labels
+                    formElement.querySelectorAll('input[type="checkbox"]').forEach(el => {
+                        el.style.cssText = `
+                            margin-right: 8px !important;
+                            width: 16px !important;
+                            height: 16px !important;
+                            vertical-align: middle !important;
+                        `;
+                        
+                        // Style the label that contains the checkbox
+                        const label = el.closest('label');
+                        if (label) {
+                            label.style.cssText = `
+                                display: flex !important;
+                                align-items: flex-start !important;
+                                color: rgba(255, 255, 255, 0.6) !important;
+                                font-size: 0.9rem !important;
+                                line-height: 1.4 !important;
+                            `;
+                        }
+                    });
+                }
+                
+                // Apply styles immediately
+                applyFormStyles();
+                
+                // Apply again after a delay to catch any async rendering
+                setTimeout(applyFormStyles, 100);
+                setTimeout(applyFormStyles, 500);
+                setTimeout(applyFormStyles, 1000);
+            }
+        });
+    </script>
+</body>
+</html>

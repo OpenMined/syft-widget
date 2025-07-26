@@ -29,7 +29,10 @@
       "Bash(ls:*)",
       "Bash(jupyter nbconvert:*)",
       "Bash(git clone:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(uv build:*)",
+      "Bash(/Users/atrask/.cargo/bin/uv build)",
+      "Bash(pip3:*)"
     ],
     "deny": []
   }

@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Reference - syft-widget</title>
+    <link rel="icon" type="image/svg+xml" href="../images/syftbox-logo.svg">
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .api-method {
+            background: white;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: var(--space-5);
+            margin-bottom: var(--space-5);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .api-method:hover {
+            box-shadow: var(--shadow-md);
+        }
+        
+        .method-signature {
+            background: var(--color-dark);
+            color: white;
+            padding: var(--space-3) var(--space-4);
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            font-size: 1.2rem;
+            margin-bottom: var(--space-4);
+            display: inline-block;
+        }
+        
+        .method-description {
+            font-size: 1.1rem;
+            color: var(--color-gray);
+            margin-bottom: var(--space-4);
+            line-height: 1.6;
+        }
+        
+        .params-section,
+        .returns-section {
+            background: var(--color-light-gray);
+            border-radius: 8px;
+            padding: var(--space-3);
+            margin-bottom: var(--space-3);
+        }
+        
+        .section-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--color-gray);
+            margin-bottom: var(--space-2);
+        }
+        
+        .param-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .param-table th {
+            text-align: left;
+            padding: var(--space-2);
+            border-bottom: 2px solid rgba(0,0,0,0.1);
+            font-weight: 600;
+            color: var(--color-dark);
+        }
+        
+        .param-table td {
+            padding: var(--space-2);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            vertical-align: top;
+        }
+        
+        .param-name {
+            font-family: var(--font-mono);
+            color: var(--color-primary);
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        .param-type {
+            font-family: var(--font-mono);
+            color: var(--color-accent);
+            font-size: 0.9rem;
+        }
+        
+        .param-desc {
+            color: var(--color-gray);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        .example-section {
+            margin-top: var(--space-4);
+        }
+        
+        .example-section pre {
+            margin: 0;
+            background: var(--color-code-bg);
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 8px;
+            padding: var(--space-3);
+        }
+        
+        .api-nav {
+            position: sticky;
+            top: 20px;
+            background: white;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 8px;
+            padding: var(--space-3);
+            margin-bottom: var(--space-4);
+        }
+        
+        .api-nav h3 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--color-gray);
+            margin-bottom: var(--space-2);
+        }
+        
+        .api-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .api-nav a {
+            display: block;
+            padding: var(--space-1) 0;
+            color: var(--color-dark);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+        
+        .api-nav a:hover {
+            color: var(--color-primary);
+        }
+        
+        .api-content {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: var(--space-6);
+            align-items: start;
+        }
+        
+        @media (max-width: 1024px) {
+            .api-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .api-nav {
+                position: static;
+                margin-bottom: var(--space-6);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav>
+            <div class="nav-wrapper">
+                <div class="logo-group">
+                    <img src="../images/syftbox-logo.svg" alt="SyftBox" class="syftbox-logo">
+                    <a href="../index.html" class="logo">syft-widget</a>
+                </div>
+                <div class="nav-links">
+                    <a href="../index.html">Home</a>
+                    <a href="https://colab.research.google.com/github/OpenMined/syft-widget/blob/main/notebooks/tutorial.ipynb" target="_blank">Try in Colab</a>
+                    <a href="index.html" class="active">API</a>
+                    <a href="https://github.com/OpenMined/syft-widget" class="github-link">GitHub</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- API Hero -->
+    <section class="api-hero">
+        <div class="container">
+            <h1>API Reference</h1>
+            <p class="hero-subtitle">Build resilient widgets with automatic fallback, live updates, and REST APIs</p>
+        </div>
+    </section>
+
+    <!-- API Content -->
+    <section class="api-section">
+        <div class="container">
+            <div class="api-content">
+                <!-- Navigation Sidebar -->
+                <aside class="api-nav">
+                    <h3>Quick Navigation</h3>
+                    <ul>
+                        <li><a href="#display-classes">Display Classes</a></li>
+                        <li><a href="#endpoint-decorators">Endpoint Decorators</a></li>
+                        <li><a href="#package-utilities">Package Utilities</a></li>
+                        <li><a href="#infrastructure">Infrastructure</a></li>
+                    </ul>
+                </aside>
+
+                <!-- Main Content -->
+                <div class="api-main">
+                    <!-- Display Classes -->
+                    <section id="display-classes">
+                        <h2>Display Classes</h2>
+                        
+                        <div class="api-method">
+                            <div class="method-signature">APIDisplay(mode=None)</div>
+                            <p class="method-description">
+                                Base class for creating resilient widgets with automatic fallback between SyftBox, thread, and checkpoint modes.
+                                Inherit from this class to build widgets that never break.
+                            </p>
+                            
+                            <div class="params-section">
+                                <div class="section-title">Parameters</div>
+                                <table class="param-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-name">mode</span></td>
+                                            <td><span class="param-type">str, optional</span></td>
+                                            <td><span class="param-desc">Force a specific mode: 'syftbox', 'thread', or 'checkpoint'. If None, tries modes in order.</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="returns-section">
+                                <div class="section-title">Methods to Override</div>
+                                <table class="param-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-name">render()</span></td>
+                                            <td><span class="param-desc">Must return HTML string to display. Called on updates.</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Example</div>
+                                <pre><code class="language-python">from syft_widget import APIDisplay
+
+class MyWidget(APIDisplay):
+    def render(self):
+        # This method is called automatically on updates
+        return f"<h2>Widget content at {datetime.now()}</h2>"
+
+# Widget automatically tries SyftBox → Thread → Checkpoint
+widget = MyWidget()
+widget  # Display in Jupyter</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="api-method">
+                            <div class="method-signature">widget.get_current_mode()</div>
+                            <p class="method-description">
+                                Get the current connection mode of the widget. Useful for debugging and status displays.
+                            </p>
+                            
+                            <div class="returns-section">
+                                <div class="section-title">Returns</div>
+                                <table class="param-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-type">str</span></td>
+                                            <td><span class="param-desc">Current mode: 'syftbox', 'thread', or 'checkpoint'</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Example</div>
+                                <pre><code class="language-python">widget = MyWidget()
+mode = widget.get_current_mode()
+print(f"Running in {mode} mode")
+
+# Use in render method for status
+def render(self):
+    mode = self.get_current_mode()
+    return f"<p>Mode: {mode}</p>"</code></pre>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Endpoint Decorators -->
+                    <section id="endpoint-decorators">
+                        <h2>Endpoint Decorators</h2>
+                        
+                        <div class="api-method">
+                            <div class="method-signature">@register_endpoint(path, methods=["GET"])</div>
+                            <p class="method-description">
+                                Decorator to register a function as a REST API endpoint. The endpoint is automatically
+                                available when running in SyftBox mode with CORS headers handled automatically.
+                            </p>
+                            
+                            <div class="params-section">
+                                <div class="section-title">Parameters</div>
+                                <table class="param-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-name">path</span></td>
+                                            <td><span class="param-type">str</span></td>
+                                            <td><span class="param-desc">URL path for the endpoint (e.g., "/api/data")</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">methods</span></td>
+                                            <td><span class="param-type">list[str]</span></td>
+                                            <td><span class="param-desc">HTTP methods to accept. Default: ["GET"]</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="returns-section">
+                                <div class="section-title">Function Requirements</div>
+                                <table class="param-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-name">request</span></td>
+                                            <td><span class="param-desc">Function must accept a FastAPI Request object</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">return</span></td>
+                                            <td><span class="param-desc">Must return JSON-serializable data</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Example</div>
+                                <pre><code class="language-python">from syft_widget import register_endpoint
+
+@register_endpoint("/api/birds")
+def get_birds(request):
+    # Automatic CORS handling
+    return {"birds": ["Blue Jay", "Cardinal", "Robin"]}
+
+@register_endpoint("/api/add_bird", methods=["POST"])
+def add_bird(request):
+    data = request.json  # Get POST data
+    save_bird(data)
+    return {"success": True, "bird": data["name"]}</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="api-method">
+                            <div class="method-signature">get_all_endpoints()</div>
+                            <p class="method-description">
+                                Get a list of all registered endpoints in the current package. Useful for debugging
+                                and API documentation generation.
+                            </p>
+                            
+                            <div class="returns-section">
+                                <div class="section-title">Returns</div>
+                                <table class="param-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-type">list[dict]</span></td>
+                                            <td><span class="param-desc">List of endpoint info with path, methods, and function details</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Example</div>
+                                <pre><code class="language-python">from syft_widget import get_all_endpoints
+
+# List all registered endpoints
+endpoints = get_all_endpoints()
+for ep in endpoints:
+    print(f"{ep['methods']} {ep['path']} → {ep['function'].__name__}")</code></pre>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Package Utilities -->
+                    <section id="package-utilities">
+                        <h2>Package Utilities</h2>
+                        
+                        <div class="api-method">
+                            <div class="method-signature">create_package(name, github_username, **kwargs)</div>
+                            <p class="method-description">
+                                Create a complete syft-widget package structure with all necessary files, ready for
+                                development and deployment to GitHub/PyPI.
+                            </p>
+                            
+                            <div class="params-section">
+                                <div class="section-title">Parameters</div>
+                                <table class="param-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-name">name</span></td>
+                                            <td><span class="param-type">str</span></td>
+                                            <td><span class="param-desc">Package name (e.g., "my-widget")</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">github_username</span></td>
+                                            <td><span class="param-type">str</span></td>
+                                            <td><span class="param-desc">Your GitHub username for repository URL</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">display_name</span></td>
+                                            <td><span class="param-type">str, optional</span></td>
+                                            <td><span class="param-desc">Human-readable name for the widget</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">description</span></td>
+                                            <td><span class="param-type">str, optional</span></td>
+                                            <td><span class="param-desc">Package description</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="returns-section">
+                                <div class="section-title">Returns</div>
+                                <table class="param-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-type">Path</span></td>
+                                            <td><span class="param-desc">Path to the created package directory</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Example</div>
+                                <pre><code class="language-python">from syft_widget import create_package
+
+# Create a new widget package
+package_dir = create_package(
+    "bird-watcher",
+    "myusername",
+    display_name="Bird Watcher Widget",
+    description="Live bird sighting tracker"
+)
+
+print(f"Package created at: {package_dir}")
+# Creates:
+# bird-watcher/
+#   ├── displays/
+#   ├── endpoints/
+#   ├── pyproject.toml
+#   └── ...</code></pre>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Infrastructure -->
+                    <section id="infrastructure">
+                        <h2>Infrastructure Management</h2>
+                        
+                        <div class="api-method">
+                            <div class="method-signature">start_infrastructure(port=8000)</div>
+                            <p class="method-description">
+                                Start the syft-widget development server for testing endpoints and widgets locally.
+                                This is primarily for development - production deployment happens via SyftBox.
+                            </p>
+                            
+                            <div class="params-section">
+                                <div class="section-title">Parameters</div>
+                                <table class="param-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-name">port</span></td>
+                                            <td><span class="param-type">int</span></td>
+                                            <td><span class="param-desc">Port to run the server on. Default: 8000</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Example</div>
+                                <pre><code class="language-python">from syft_widget import start_infrastructure
+
+# Start development server
+start_infrastructure(port=8080)
+# Server running at http://localhost:8080
+# Your endpoints available at http://localhost:8080/api/*</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="api-method">
+                            <div class="method-signature">stop_infrastructure()</div>
+                            <p class="method-description">
+                                Stop the running development server and clean up resources.
+                            </p>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Example</div>
+                                <pre><code class="language-python">from syft_widget import stop_infrastructure
+
+# Stop the server
+stop_infrastructure()</code></pre>
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>Built with ❤️ by <a href="https://openmined.org">OpenMined</a></p>
+        </div>
+    </footer>
+
+    <script src="../js/main.js"></script>
+</body>
+</html>
