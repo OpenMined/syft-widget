@@ -287,6 +287,13 @@ class SystemDashboard(APIDisplay):
             style="border: none; border-radius: 8px;">
         </iframe>
         '''
+    
+    def get_update_script(self):
+        """Override to prevent external JavaScript from interfering with iframe"""
+        return '''
+        // Iframe handles all updates internally - no external updates needed
+        console.log('🔄 SystemDashboard: External update called - iframe handles this internally');
+        '''
 
 # Use it in Jupyter
 widget = SystemDashboard()
