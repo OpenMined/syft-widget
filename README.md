@@ -181,10 +181,10 @@ setInterval(updateSystem, 1000);
 
 def restart_infrastructure():
     """Properly restart the infrastructure after it's been stopped"""
-    from syft_widget.widget_registry import get_registry
+    from syft_widget.widget_registry import get_current_registry
     
     # Get the registry and force cleanup
-    registry = get_registry()
+    registry = get_current_registry()
     
     # Stop any existing infrastructure
     registry.stop()
