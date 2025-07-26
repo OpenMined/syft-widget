@@ -79,20 +79,36 @@ body {{ margin:0; font-family:Arial; background:#f5f5f5; }}
 async function updateTime() {{
     try {{
         for (let port = 8000; port <= 8010; port++) {{
-            const resp = await fetch(`http://localhost:${{port}}/api/time`, {{mode:'cors', signal:AbortSignal.timeout(500)}});
-            if (resp.ok) {{
-                const data = await resp.json();
-                document.getElementById('time-display').textContent = data.formatted;
-                document.getElementById('mode-display').textContent = 'Thread';
-                document.getElementById('mode-display').className = 'mode thread';
-                return;
+            try {{
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 500);
+                const resp = await fetch(`http://localhost:${{port}}/api/time`, {{
+                    mode: 'cors',
+                    signal: controller.signal
+                }});
+                clearTimeout(timeoutId);
+                
+                if (resp.ok) {{
+                    const data = await resp.json();
+                    document.getElementById('time-display').textContent = data.formatted;
+                    document.getElementById('mode-display').textContent = 'Thread';
+                    document.getElementById('mode-display').className = 'mode thread';
+                    console.log('✅ Connected to Thread server on port', port);
+                    return;
+                }}
+            }} catch(e) {{
+                // Port not available, continue to next
+                continue;
             }}
         }}
         // Fallback to local time if no server
         document.getElementById('time-display').textContent = new Date().toLocaleTimeString();
         document.getElementById('mode-display').textContent = 'Checkpoint';
         document.getElementById('mode-display').className = 'mode checkpoint';
-    }} catch(e) {{}}
+        console.log('📁 Using Checkpoint mode - no server found');
+    }} catch(e) {{
+        console.error('❌ Error in updateTime:', e);
+    }}
 }}
 setInterval(updateTime, 1000);
 </script></body></html>'''
