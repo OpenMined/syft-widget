@@ -2,7 +2,12 @@ import time
 import threading
 import random
 from typing import Optional, Dict, Callable, Any
-import ipywidgets as widgets
+try:
+    import ipywidgets as widgets
+    HAS_IPYWIDGETS = True
+except ImportError:
+    HAS_IPYWIDGETS = False
+    widgets = None
 import uuid
 from .widget import SyftWidget
 from .server import run_server_in_thread
@@ -42,7 +47,7 @@ class ManagedWidget(SyftWidget):
         self.syftbox_manager = None
         self.current_stage = "checkpoint"
         self.widget_id = f"syft-widget-{uuid.uuid4().hex[:8]}"
-        self.iframe = widgets.HTML()
+        self.iframe = widgets.HTML() if HAS_IPYWIDGETS else None
         self._stop_monitoring = False
         self._starting_thread_server = False
         self.mode = mode
@@ -834,11 +839,12 @@ class ManagedWidget(SyftWidget):
         </iframe>
         """
         
-        self.iframe.value = iframe_html
+        if self.iframe:
+            self.iframe.value = iframe_html
     
     def display(self):
         self._update_display()
-        return self.iframe
+        return self.iframe if self.iframe else iframe_html
     
     def stop(self):
         """Stop all monitoring and servers"""
