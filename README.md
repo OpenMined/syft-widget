@@ -176,7 +176,15 @@ setInterval(updateSystem, 1000);
         return "// Iframe handles updates internally"
     
     def _repr_html_(self):
-        """Override to return only iframe, bypassing main widget JavaScript"""
+        """Override to return only iframe, with auto-start functionality"""
+        # Auto-start infrastructure if enabled
+        if self.start_infra:
+            try:
+                from syft_widget.widget_registry import start_infrastructure
+                start_infrastructure()
+            except Exception as e:
+                print(f"Warning: Could not start infrastructure: {e}")
+        
         return self.render_content({}, "checkpoint")
 
 # Use it - infrastructure starts automatically!

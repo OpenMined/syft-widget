@@ -16,6 +16,9 @@ dependencies = [
 requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+exclude = ["notebooks*", "docs*", "test*"]
+
 [tool.uv]
 dev-dependencies = [
     "jupyter>=1.0.0",
