@@ -22,6 +22,8 @@ Your widgets automatically transition between modes, so users **never see a brok
 
 ## 💻 Quick Start
 
+> **Note:** syft-widget is designed for **Jupyter notebooks**. In a Python REPL, you'll see JSON data instead of the widget UI.
+
 ```bash
 pip install syft-widget
 ```
@@ -83,9 +85,12 @@ class FileMonitorWidget(APIDisplay):
         </div>
         '''
 
-# Use it - automatically works in all modes!
+# Use it in Jupyter notebook
 widget = FileMonitorWidget()
-widget  # Display in Jupyter - updates live when files change
+widget  # Displays the widget UI in Jupyter
+
+# In Python REPL, use display() or _repr_html_()
+# display(widget)  # or widget._repr_html_() to see the HTML
 ```
 
 ## 📚 Documentation
