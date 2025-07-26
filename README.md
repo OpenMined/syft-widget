@@ -26,67 +26,66 @@ Your widgets automatically transition between modes, so users **never see a brok
 pip install syft-widget
 ```
 
-Create a resilient widget in just a few lines:
-
-```python
-from syft_widget import APIDisplay
-
-class SimpleWidget(APIDisplay):
-    def __init__(self):
-        super().__init__(endpoints=[])  # No endpoints needed for simple widgets
-    
-    def render_content(self, data, server_type="checkpoint"):
-        # Shows different content based on connection mode
-        mode_info = {
-            "checkpoint": ("📁", "Using cached data"),
-            "thread": ("🧵", "Connected to dev server"), 
-            "syftbox": ("📦", "Connected to SyftBox")
-        }
-        icon, status = mode_info.get(server_type, ("❓", "Unknown"))
-        
-        return f"""
-        <div style="padding: 20px; border: 2px solid #ccc; border-radius: 8px;">
-            <h2>{icon} Live Widget Dashboard</h2>
-            <p>Status: <strong>{status}</strong></p>
-            <p>This widget automatically switches between modes!</p>
-        </div>
-        """
-
-# Automatically works in all three modes
-widget = SimpleWidget()
-widget  # Display in Jupyter
-```
-
-For widgets that use data from endpoints:
+Create a live file monitoring widget that automatically updates:
 
 ```python
 from syft_widget import APIDisplay, register_endpoint
+from datetime import datetime
 
-# Create an endpoint (note: request parameter is optional for checkpoint mode)
-@register_endpoint("/api/stats")
-def get_stats(request=None):
-    return {"users": 42, "files": 128, "status": "healthy"}
+# Define what data to monitor
+@register_endpoint("/api/files")
+def get_files(request=None):
+    # In production, this scans real filesystems
+    # In checkpoint mode, returns mock data
+    return {
+        "files": [
+            {"name": "data.csv", "size": 1024, "modified": "10:30"},
+            {"name": "report.pdf", "size": 2048, "modified": "11:45"}
+        ],
+        "total": 2,
+        "last_scan": datetime.now().strftime("%H:%M:%S")
+    }
 
-class DashboardWidget(APIDisplay):
+# Create the monitoring widget
+class FileMonitorWidget(APIDisplay):
     def __init__(self):
-        super().__init__(endpoints=["/api/stats"])
+        super().__init__(endpoints=["/api/files"])
     
     def render_content(self, data, server_type="checkpoint"):
-        stats = data.get("/api/stats", {})
-        users = stats.get("users", 0)
-        files = stats.get("files", 0)
+        files = data.get("/api/files", {}).get("files", [])
         
-        return f"""
-        <div style="padding: 20px; background: #f0f0f0; border-radius: 8px;">
-            <h2>📊 System Dashboard</h2>
-            <p>👥 Active Users: <strong>{users}</strong></p>
-            <p>📁 Total Files: <strong>{files}</strong></p>
-            <p>Mode: {server_type}</p>
+        # Mode indicator badge
+        modes = {
+            "checkpoint": ("📁 Mock Data", "#6c757d"),
+            "thread": ("🧵 Dev Server", "#28a745"),
+            "syftbox": ("📦 Production", "#007bff")
+        }
+        mode_label, mode_color = modes.get(server_type, ("", ""))
+        
+        # Build the widget HTML
+        rows = "".join(f'<tr><td>{f["name"]}</td><td>{f["size"]}B</td></tr>' 
+                      for f in files)
+        
+        return f'''
+        <div style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
+            <div style="background: #f8f9fa; padding: 10px; display: flex; justify-content: space-between;">
+                <strong>📂 File Monitor</strong>
+                <span style="background: {mode_color}; color: white; padding: 2px 8px; 
+                            border-radius: 4px; font-size: 12px;">{mode_label}</span>
+            </div>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead><tr style="background: #e9ecef;">
+                    <th style="padding: 8px; text-align: left;">File</th>
+                    <th style="padding: 8px; text-align: right;">Size</th>
+                </tr></thead>
+                <tbody>{rows if rows else '<tr><td colspan="2" style="padding: 20px; text-align: center; color: #999;">No files found</td></tr>'}</tbody>
+            </table>
         </div>
-        """
+        '''
 
-widget = DashboardWidget()
-widget  # Display in Jupyter
+# Use it - automatically works in all modes!
+widget = FileMonitorWidget()
+widget  # Display in Jupyter - updates live when files change
 ```
 
 ## 📚 Documentation
