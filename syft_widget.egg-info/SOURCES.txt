@@ -5,7 +5,6 @@ syft_widget/__init__.py
 syft_widget/cli.py
 syft_widget/debug_utils.py
 syft_widget/display_objects.py
-syft_widget/docs_server.py
 syft_widget/dynamic_widget.py
 syft_widget/widget_registry.py
 syft_widget.egg-info/PKG-INFO

@@ -4,6 +4,7 @@ fastapi>=0.100.0
 uvicorn>=0.23.0
 syft_core>=0.1.0
 syft-serve>=0.2.5
+jupyter-dark-detect>=0.1.0
 
 [:sys_platform != "emscripten"]
 psutil>=5.9.0

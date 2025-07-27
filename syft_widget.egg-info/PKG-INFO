@@ -12,6 +12,7 @@ Requires-Dist: uvicorn>=0.23.0
 Requires-Dist: syft_core>=0.1.0
 Requires-Dist: syft-serve>=0.2.5
 Requires-Dist: psutil>=5.9.0; sys_platform != "emscripten"
+Requires-Dist: jupyter-dark-detect>=0.1.0
 Provides-Extra: dev
 Requires-Dist: jupyter>=1.0.0; extra == "dev"
 Requires-Dist: notebook>=6.0.0; extra == "dev"

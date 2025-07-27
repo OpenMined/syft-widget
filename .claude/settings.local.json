@@ -12,7 +12,8 @@
       "Bash(rm:*)",
       "Bash(git checkout:*)",
       "Bash(python test:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(ffmpeg:*)"
     ],
     "deny": []
   }
