@@ -1,0 +1,18 @@
+Metadata-Version: 2.4
+Name: syft-widget
+Version: 0.3.0
+Summary: A toolkit for interactive Jupyter widgets with automatic server management via syft-serve
+Author-email: Your Name <your.email@example.com>
+Requires-Python: >=3.9
+License-File: LICENSE
+Requires-Dist: ipywidgets>=8.0.0
+Requires-Dist: requests>=2.28.0
+Requires-Dist: fastapi>=0.100.0
+Requires-Dist: uvicorn>=0.23.0
+Requires-Dist: syft_core>=0.1.0
+Requires-Dist: syft-serve>=0.2.5
+Requires-Dist: psutil>=5.9.0; sys_platform != "emscripten"
+Provides-Extra: dev
+Requires-Dist: jupyter>=1.0.0; extra == "dev"
+Requires-Dist: notebook>=6.0.0; extra == "dev"
+Dynamic: license-file

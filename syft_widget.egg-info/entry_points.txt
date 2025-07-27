@@ -1,0 +1,2 @@
+[console_scripts]
+syft-widget = syft_widget.cli:main

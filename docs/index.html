@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>syft-serve - Simple Python API for SyftBox Management</title>
+    <link rel="icon" type="image/svg+xml" href="images/syftbox-logo.svg">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav>
+            <div class="nav-wrapper">
+                <div class="logo-group">
+                    <img src="images/syftbox-logo.svg" alt="SyftBox" class="syftbox-logo">
+                    <a href="index.html" class="logo">syft-serve</a>
+                </div>
+                <div class="nav-links">
+                    <a href="https://colab.research.google.com/github/OpenMined/syft-serve/blob/main/tutorial.ipynb" target="_blank">Try in Colab</a>
+                    <a href="api/index.html">API</a>
+                    <a href="https://github.com/OpenMined/syft-serve" class="github-link">GitHub</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <section class="hero" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 0;">
+        <div class="container" style="text-align: center; max-width: 600px; margin: 0 auto; transform: translateY(-5%);">
+            <p style="font-size: 0.75rem; color: #a0aec0; margin: 1.2rem 0 0.8rem 0; font-weight: 400; letter-spacing: 0.3px;">syft server management made effortless</p>
+            
+            <!-- Install Command -->
+            <div class="install-section" style="margin: 1.5rem 0;">
+                <div class="install-command" style="width: 320px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.7rem 1.2rem;">
+                    <code style="font-size: 0.7rem;">pip install syft-serve</code>
+                    <button class="copy-btn" data-copy="pip install syft-serve" style="font-size: 0.8rem; padding: 0.3rem 0.8rem;">Copy</button>
+                </div>
+            </div>
+
+            <!-- Code Example - Hero -->
+            <div style="margin: 2rem 0;">
+                <pre style="background: #2d3748; color: #e2e8f0; padding: 0.8rem 0.8rem; border-radius: 10px; display: inline-block; text-align: left; width: 320px; box-sizing: border-box; line-height: 1.0 !important;"><code class="language-python" style="font-family: var(--font-mono); font-size: 0.7rem; word-break: break-word;">import syft_serve as ss
+import requests
+
+def hello():
+    return "Hi!"
+
+server = ss.create("my_api", {"/": hello})
+
+requests.get(server.url).text</code></pre>
+                <div style="margin-top: 0.8rem; font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace; font-size: 0.7rem; color: #9ca3af; text-align: center;">
+                    "Hi!"
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why We Built This -->
+    <section class="why-syftperm">
+        <div class="container">
+            <h2>Why We Built This</h2>
+            <p class="section-subtitle">self-hosting should be effortless</p>
+            
+            <div class="value-props">
+                <div class="value-prop">
+                    <h3>☁️ The cloud isn't yours</h3>
+                    <p>Not your computer, not your control. Cloud providers can change terms, raise prices, or shut down your app anytime.</p>
+                </div>
+                <div class="value-prop">
+                    <h3>🏠 Yours is inconvenient</h3>
+                    <p>Self-hosting means wrestling with configs, ports, and processes. Complexity keeps you dependent on cloud APIs.</p>
+                </div>
+                <div class="value-prop">
+                    <h3>✨ Convenience is possible</h3>
+                    <p>Self-hosting should be a 1-liner behind the scenes. With syft-serve, your own server is just one function call away.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- See It In Action -->
+    <section class="video-demo">
+        <div class="container">
+            <h2>See It In Action</h2>
+            <p class="section-subtitle">self-hosting can be effortless</p>
+            
+            <style>
+                .demo-tabs {
+                    max-width: 1400px;
+                    margin: 0 auto;
+                }
+                .tab-pane {
+                    display: none;
+                    background: white;
+                    border: 1px solid #d1d1d6;
+                    border-radius: 0 8px 8px 8px;
+                    padding: 2rem;
+                    margin-top: -1px;
+                }
+                .tab-pane.active {
+                    display: block;
+                }
+                .tab-nav {
+                    display: flex;
+                    gap: 0;
+                    margin-bottom: 0;
+                    border-bottom: 1px solid #d1d1d6;
+                }
+                .tab-btn {
+                    padding: 0.75rem 1.5rem;
+                    background: #f5f5f7;
+                    border: 1px solid #d1d1d6;
+                    border-bottom: none;
+                    border-radius: 8px 8px 0 0;
+                    cursor: pointer;
+                    font-size: 0.95rem;
+                    color: #6e6e73;
+                    position: relative;
+                    margin-right: -1px;
+                    transition: all 0.2s;
+                }
+                .tab-btn:first-child {
+                    border-radius: 8px 0 0 0;
+                }
+                .tab-btn:hover {
+                    background: #e8e8ed;
+                }
+                .tab-btn.active {
+                    background: white;
+                    color: #1d1d1f;
+                    font-weight: 600;
+                    z-index: 1;
+                    border-bottom: 1px solid white;
+                    margin-bottom: -1px;
+                }
+                .video-container h3 {
+                    margin-top: 0;
+                    margin-bottom: 1rem;
+                    font-size: 1.3rem;
+                }
+                .video-container p {
+                    margin-bottom: 1.5rem;
+                    color: #6e6e73;
+                }
+                .video-container {
+                    height: 600px;
+                    width: 100%;
+                    margin: 0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: white;
+                    box-sizing: border-box;
+                    padding: 0;
+                    overflow: hidden;
+                }
+                
+                /* Full width for Magic tab */
+                #magic .video-container {
+                    max-width: none;
+                    width: 100vw;
+                    margin-left: calc(50% - 50vw);
+                    border-radius: 0;
+                    background: white;
+                    padding: 0;
+                }
+                
+                #magic .video-container iframe {
+                    width: 100%;
+                    height: 100%;
+                }
+                .video-container video {
+                    border-radius: 8px;
+                    background: white;
+                    max-height: 100%;
+                    max-width: 100%;
+                    width: 100%;
+                    height: 100%;
+                    object-fit: contain;
+                }
+                
+                /* Black background for terminal tab */
+                #terminal .video-container {
+                    background: #000;
+                }
+                #terminal .video-container video {
+                    background: #000;
+                }
+            </style>
+            
+            <div class="demo-tabs">
+                <div class="tab-nav">
+                    <button class="tab-btn active" data-tab="jupyter">Jupyter</button>
+                    <button class="tab-btn" data-tab="colab">Colab</button>
+                    <button class="tab-btn" data-tab="terminal">Terminal</button>
+                    <button class="tab-btn" data-tab="magic">Super Jupyter</button>
+                </div>
+                
+                <div class="tab-content">
+                    <div class="tab-pane active" id="jupyter">
+                        <div class="video-container">
+                            <video width="100%" controls preload="metadata" muted loop poster="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KUGF0aCBkPSJNOCA1VjE5TDE5IDEyTDggNVoiIGZpbGw9IiM2NjY2NjYiLz4KPC9zdmc+Cg==">
+                                <source src="videos/syft_serve_jupyter.mp4" type="video/mp4">
+                                <source src="videos/syft_serve_jupyter.mov" type="video/quicktime">
+                                <source src="https://raw.githubusercontent.com/OpenMined/syft-serve/main/docs/videos/syft_serve_jupyter.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane" id="colab">
+                        <div class="video-container">
+                            <video width="100%" controls preload="metadata" muted loop poster="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KUGF0aCBkPSJNOCA1VjE5TDE5IDEyTDggNVoiIGZpbGw9IiM2NjY2NjYiLz4KPC9zdmc+Cg==">
+                                <source src="videos/syft_serve_colab.mp4" type="video/mp4">
+                                <source src="/Users/atrask/Desktop/syft_serve_colab.mov" type="video/quicktime">
+                                <source src="https://raw.githubusercontent.com/OpenMined/syft-serve/main/docs/videos/syft_serve_colab.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane" id="terminal">
+                        <div class="video-container">
+                            <video width="100%" controls preload="metadata" muted loop poster="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KUGF0aCBkPSJNOCA1VjE5TDE5IDEyTDggNVoiIGZpbGw9IiM2NjY2NjYiLz4KPC9zdmc+Cg==">
+                                <source src="videos/syft_serve_terminal.mp4" type="video/mp4">
+                                <source src="/Users/atrask/Desktop/syft_serve_teminal.mov" type="video/quicktime">
+                                <source src="https://raw.githubusercontent.com/OpenMined/syft-serve/main/docs/videos/syft_serve_terminal.mp4" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane" id="magic">
+                        <div class="video-container">
+                            <iframe id="magic-video" width="100%" height="400" 
+                                    src="https://www.youtube.com/embed/dQw4w9WgXcQ?enablejsapi=1"
+                                    title="Magic Demo" frameborder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dark Section Wrapper - Contains all dark sections with roaming spotlights -->
+    <div class="dark-section-wrapper">
+        <!-- Under the Hood -->
+        <section class="under-the-hood">
+            <div class="container">
+                <h2>Under the Hood</h2>
+                <p class="section-subtitle">Here's what syft-serve does for you</p>
+                
+                <div class="code-showcase">
+                    <pre><code class="language-python"># You write:
+server = ss.create("my_api", {"/predict": my_function})
+
+# Behind the scenes:
+# ✓ Spins up isolated Python environment
+# ✓ Installs your dependencies safely  
+# ✓ Generates production-ready FastAPI code
+# ✓ Manages server process lifecycle
+# ✓ Streams logs for easy debugging
+# ✓ Cleans up everything when done
+
+# No orphan processes. No port conflicts. No hassle.</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- Complete API -->
+        <section class="api-preview-dark">
+            <div class="container">
+                <h2>The Complete API</h2>
+                <p class="section-subtitle">Everything you need, nothing you don't</p>
+                
+                <style>
+                    .api-examples {
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 2rem;
+                    }
+                    .api-example {
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    .api-example pre {
+                        flex: 1;
+                        display: flex;
+                        align-items: center;
+                    }
+                </style>
+                
+                <div class="api-examples">
+                    <div class="api-example">
+                        <h3>Create & Customize</h3>
+                        <pre><code class="language-python">import syft_serve as ss
+
+# Basic usage
+server = ss.create("my_api", {"/hello": hello_func})
+
+# Full control
+server = ss.create(
+    name="my_api",
+    endpoints={"/predict": predict, "/train": train},
+    dependencies=["numpy", "pandas"],
+    port=8080,
+    expiration_seconds=3600,  # Auto-cleanup
+    force=True                # Replace existing
+)</code></pre>
+                    </div>
+                    
+                    <div class="api-example">
+                        <h3>Server Management</h3>
+                        <pre><code class="language-python"># List all servers
+servers = ss.list()
+
+# Get specific server
+server = ss.get("my_api")
+
+# Access server properties
+server.url          # http://localhost:8080
+server.endpoints    # ["/predict", "/train"]
+server.status       # "running"
+server.uptime       # "2h 15m"</code></pre>
+                    </div>
+                    
+                    <div class="api-example">
+                        <h3>Logs & Debugging</h3>
+                        <pre><code class="language-python"># Stream logs in real-time
+server.stdout.follow()
+
+# Get recent logs
+server.stdout.tail(20)
+server.stderr.tail(20)
+
+# Check environment
+server.env.packages    # Installed packages
+server.env.python      # Python version</code></pre>
+                    </div>
+                    
+                    <div class="api-example">
+                        <h3>Lifecycle Control</h3>
+                        <pre><code class="language-python"># Graceful shutdown
+server.terminate()
+
+# Force kill if needed
+server.force_terminate()
+
+# Clean up all servers
+ss.terminate_all()
+
+# Auto-expiring servers
+ss.create("temp_api", endpoints, 
+         expiration_seconds=300)  # 5 min</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Try It Out - Apple Style -->
+        <section class="try-it-out">
+            <div class="container">
+                <div style="max-width: 600px; margin: 0 auto; text-align: center;">
+                    <h2 style="font-size: 3rem; font-weight: 600; color: white; margin-bottom: 2rem; letter-spacing: -0.02em;">try it out</h2>
+                    <p style="font-size: 1.3rem; color: rgba(255, 255, 255, 0.8); margin-bottom: 3rem;">experience syft-serve in google colab</p>
+                    <a href="https://colab.research.google.com/github/OpenMined/syft-serve/blob/main/tutorial.ipynb" 
+                       style="display: inline-block; background: white; color: #0a0a0a; padding: 1rem 2rem; border-radius: 980px; text-decoration: none; font-size: 1.1rem; font-weight: 500; transition: all 0.2s; border: none;" 
+                       onmouseover="this.style.background='rgba(255,255,255,0.9)'" 
+                       onmouseout="this.style.background='white'">open in colab</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Newsletter Section -->
+        <section class="newsletter-section-dark">
+            <div class="container">
+                <div class="newsletter-content">
+                    <h2>Stay Updated</h2>
+                    <p>Get notified about SOTA privacy tools like syft-serve</p>
+                    
+                    <!-- HubSpot Form -->
+                    <div id="hubspot-form-container"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer-dark">
+            <div class="container">
+                <p>Built with ❤️ by <a href="https://openmined.org">OpenMined</a></p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        // Tab functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            
+            // Autoplay the default active video (Jupyter tab)
+            setTimeout(() => {
+                const defaultActiveVideo = document.querySelector('.tab-pane.active video');
+                if (defaultActiveVideo) {
+                    defaultActiveVideo.play().catch(e => {
+                        console.log('Autoplay prevented on page load:', e);
+                    });
+                }
+            }, 500); // Small delay to ensure video is loaded
+            
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const targetTab = this.getAttribute('data-tab');
+                    
+                    // Remove active class from all buttons and panes
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    tabPanes.forEach(p => p.classList.remove('active'));
+                    
+                    // Add active class to clicked button and corresponding pane
+                    this.classList.add('active');
+                    const targetPane = document.getElementById(targetTab);
+                    targetPane.classList.add('active');
+                    
+                    // Pause all videos first
+                    document.querySelectorAll('video').forEach(video => {
+                        video.pause();
+                    });
+                    
+                    // Pause magic video
+                    const magicIframe = document.getElementById('magic-video');
+                    if (magicIframe) {
+                        magicIframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                    }
+                    
+                    // Handle autoplay for each tab
+                    if (targetTab === 'magic') {
+                        // Use postMessage to play the magic video
+                        setTimeout(() => {
+                            const iframe = document.getElementById('magic-video');
+                            if (iframe) {
+                                iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                            }
+                        }, 100);
+                    } else {
+                        // Find and autoplay the video in the active tab
+                        const activeVideo = targetPane.querySelector('video');
+                        if (activeVideo) {
+                            setTimeout(() => {
+                                activeVideo.play().catch(e => {
+                                    // Autoplay failed, user needs to interact first
+                                    console.log('Autoplay prevented:', e);
+                                });
+                            }, 100);
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+    
+    <!-- HubSpot Forms Script -->
+    <script charset="utf-8" type="text/javascript" src="//js.hsforms.net/forms/embed/v2.js"></script>
+    <script>
+        hbspt.forms.create({
+            region: "na1",
+            portalId: "6487402",
+            formId: "b7a08fdc-0fb5-4938-99e8-4a09e7bbc09e",
+            target: "#hubspot-form-container",
+            css: "",
+            cssClass: "newsletter-hubspot-form",
+            onFormReady: function(form) {
+                // Function to apply all styles
+                function applyFormStyles() {
+                    const formElement = document.querySelector('#hubspot-form-container form');
+                    if (!formElement) return;
+                    
+                    // Hide all labels (we'll use placeholders)
+                    formElement.querySelectorAll('label').forEach(label => {
+                        if (!label.querySelector('input[type="checkbox"]')) {
+                            label.style.display = 'none';
+                        }
+                    });
+                    
+                    // Fix the name field layout by finding the actual field groups
+                    const fieldGroups = formElement.querySelectorAll('.hs-form-field');
+                    let firstNameGroup = null;
+                    let lastNameGroup = null;
+                    
+                    fieldGroups.forEach(group => {
+                        if (group.querySelector('input[name="firstname"]')) firstNameGroup = group;
+                        if (group.querySelector('input[name="lastname"]')) lastNameGroup = group;
+                    });
+                    
+                    if (firstNameGroup && lastNameGroup) {
+                        // Create a container for both name fields
+                        const nameContainer = document.createElement('div');
+                        nameContainer.style.cssText = 'display: flex; gap: 1rem; margin-bottom: 0.5rem;';
+                        
+                        // Insert the container
+                        firstNameGroup.parentNode.insertBefore(nameContainer, firstNameGroup);
+                        
+                        // Move both field groups into the container
+                        nameContainer.appendChild(firstNameGroup);
+                        nameContainer.appendChild(lastNameGroup);
+                        
+                        // Style the field groups
+                        [firstNameGroup, lastNameGroup].forEach(group => {
+                            group.style.cssText = 'flex: 1; margin: 0;';
+                        });
+                    }
+                    
+                    // Style all inputs with more specific selectors
+                    formElement.querySelectorAll('input[type="text"], input[type="email"], textarea').forEach(el => {
+                        el.style.cssText = `
+                            width: 100% !important;
+                            padding: 12px 16px !important;
+                            font-size: 1rem !important;
+                            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                            border-radius: 12px !important;
+                            background: rgba(255, 255, 255, 0.05) !important;
+                            color: white !important;
+                            box-sizing: border-box !important;
+                            margin: 0 !important;
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                        `;
+                        
+                        // Add placeholders
+                        if (el.name === 'firstname') el.placeholder = 'First name';
+                        if (el.name === 'lastname') el.placeholder = 'Last name';
+                        if (el.name === 'email') el.placeholder = 'Email address';
+                    });
+                    
+                    // Style submit button
+                    formElement.querySelectorAll('input[type="submit"]').forEach(el => {
+                        el.style.cssText = `
+                            background: white !important;
+                            color: #0a0a0a !important;
+                            border: none !important;
+                            padding: 12px 32px !important;
+                            border-radius: 980px !important;
+                            font-size: 1rem !important;
+                            font-weight: 500 !important;
+                            cursor: pointer !important;
+                            width: auto !important;
+                            margin-top: 1rem !important;
+                        `;
+                    });
+                    
+                    // Style form groups to remove default margins
+                    formElement.querySelectorAll('.hs-form-field').forEach(field => {
+                        field.style.marginBottom = '0';
+                    });
+                    
+                    // Fix email field group specifically
+                    const emailGroup = formElement.querySelector('.hs_email');
+                    if (emailGroup) {
+                        emailGroup.style.marginBottom = '0.5rem';
+                        emailGroup.style.marginTop = '0';
+                    }
+                    
+                    // Fix ALL text elements
+                    formElement.querySelectorAll('.hs-richtext p, .hs-richtext span, .hs-richtext em, .hs-richtext i').forEach(el => {
+                        el.style.cssText = `
+                            color: rgba(255, 255, 255, 0.6) !important;
+                            font-style: normal !important;
+                            font-weight: normal !important;
+                            font-size: 0.9rem !important;
+                            line-height: 1.6 !important;
+                            margin: 0.5rem 0 !important;
+                        `;
+                    });
+                    
+                    // Style legal text
+                    formElement.querySelectorAll('.legal-consent-container').forEach(el => {
+                        el.style.cssText = `
+                            margin-top: 1rem !important;
+                            color: rgba(255, 255, 255, 0.6) !important;
+                            font-size: 0.9rem !important;
+                        `;
+                    });
+                    
+                    // Fix checkboxes and their labels
+                    formElement.querySelectorAll('input[type="checkbox"]').forEach(el => {
+                        el.style.cssText = `
+                            margin-right: 8px !important;
+                            width: 16px !important;
+                            height: 16px !important;
+                            vertical-align: middle !important;
+                        `;
+                        
+                        // Style the label that contains the checkbox
+                        const label = el.closest('label');
+                        if (label) {
+                            label.style.cssText = `
+                                display: flex !important;
+                                align-items: flex-start !important;
+                                color: rgba(255, 255, 255, 0.6) !important;
+                                font-size: 0.9rem !important;
+                                line-height: 1.4 !important;
+                            `;
+                        }
+                    });
+                }
+                
+                // Apply styles immediately
+                applyFormStyles();
+                
+                // Apply again after a delay to catch any async rendering
+                setTimeout(applyFormStyles, 100);
+                setTimeout(applyFormStyles, 500);
+                setTimeout(applyFormStyles, 1000);
+            }
+        });
+    </script>
+</body>
+</html>

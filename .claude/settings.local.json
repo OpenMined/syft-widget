@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip index versions:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(rm:*)",
+      "Bash(cp:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(chmod:*)",
+      "Bash(rm:*)",
+      "Bash(git checkout:*)",
+      "Bash(python test:*)",
+      "Bash(python3:*)"
+    ],
+    "deny": []
+  }
+}
