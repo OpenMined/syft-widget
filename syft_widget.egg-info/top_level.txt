@@ -1,1 +1,3 @@
+dist
 syft_widget
+venv

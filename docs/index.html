@@ -213,7 +213,6 @@ clock</code></pre>
                 <div class="tab-nav">
                     <button class="tab-btn active" data-tab="jupyter">Jupyter</button>
                     <button class="tab-btn" data-tab="colab">Colab</button>
-                    <button class="tab-btn" data-tab="terminal">Terminal</button>
                     <button class="tab-btn" data-tab="magic">Super Jupyter</button>
                 </div>
                 
@@ -230,24 +229,12 @@ clock</code></pre>
                     <div class="tab-pane" id="colab">
                         <div class="video-container">
                             <video width="100%" controls preload="metadata" muted loop poster="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KUGF0aCBkPSJNOCA1VjE5TDE5IDEyTDggNVoiIGZpbGw9IiM2NjY2NjYiLz4KPC9zdmc+Cg==">
-                                <source src="videos/syft_serve_colab.mp4" type="video/mp4">
-                                <source src="/Users/atrask/Desktop/syft_serve_colab.mov" type="video/quicktime">
-                                <source src="https://raw.githubusercontent.com/OpenMined/syft-serve/main/docs/videos/syft_serve_colab.mp4" type="video/mp4">
+                                <source src="videos/syft_widget_colab.mp4" type="video/mp4">
                                 Your browser does not support the video tag.
                             </video>
                         </div>
                     </div>
                     
-                    <div class="tab-pane" id="terminal">
-                        <div class="video-container">
-                            <video width="100%" controls preload="metadata" muted loop poster="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KUGF0aCBkPSJNOCA1VjE5TDE5IDEyTDggNVoiIGZpbGw9IiM2NjY2NjYiLz4KPC9zdmc+Cg==">
-                                <source src="videos/syft_serve_terminal.mp4" type="video/mp4">
-                                <source src="/Users/atrask/Desktop/syft_serve_teminal.mov" type="video/quicktime">
-                                <source src="https://raw.githubusercontent.com/OpenMined/syft-serve/main/docs/videos/syft_serve_terminal.mp4" type="video/mp4">
-                                Your browser does not support the video tag.
-                            </video>
-                        </div>
-                    </div>
                     
                     <div class="tab-pane" id="magic">
                         <div class="video-container">
@@ -269,21 +256,26 @@ clock</code></pre>
         <section class="under-the-hood">
             <div class="container">
                 <h2>Under the Hood</h2>
-                <p class="section-subtitle">powerful file-backed widgets made simple</p>
+                <p class="section-subtitle">file-backed widgets made effortless</p>
                 
                 <div class="code-showcase">
-                    <pre><code class="language-python"># You write:
-widget = sw.serve("my_widget", my_widget_object)
+                    <pre><code class="language-python"># The Problem: Jupyter's widget architecture wasn't built for files
+# - Python ↔ JavaScript bridge is fragile and stateful
+# - File watching requires polling or OS-specific APIs
+# - Kernel restarts break everything
+# - Multi-user scenarios are a nightmare
 
-# Behind the scenes:
-# ✓ UIs run as local syft-serve servers
-# ✓ Launch with API endpoint snapshots  
-# ✓ Roll over to live server backends
-# ✓ Run in iframes protected from Jupyter
-# ✓ Live-update against the filesystem
-# ✓ Handle distributed state gracefully
+# Our Solution: Local HTTP servers + iframes
+# ✓ Each widget spawns a lightweight FastAPI server
+# ✓ Servers watch files with native OS events (inotify/FSEvents)
+# ✓ WebSockets push changes instantly to the browser
+# ✓ Iframes isolate from Jupyter's complex DOM/state
+# ✓ Servers persist across kernel restarts
+# ✓ Multiple users can connect to the same widget
 
-# Let's just build some cool stuff.</code></pre>
+# The Result: It just works™
+widget = YourFileBackedWidget()  # Spawns server, renders iframe
+widget  # Shows live file state, updates automatically</code></pre>
                 </div>
             </div>
         </section>

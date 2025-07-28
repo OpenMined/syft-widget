@@ -1,6 +1,6 @@
 """syft-widget - Create Jupyter widgets with automatic server management via syft-serve"""
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 # syft-serve is a required dependency
 import syft_serve

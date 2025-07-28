@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: syft-widget
-Version: 0.3.0
+Version: 0.3.1
 Summary: A toolkit for interactive Jupyter widgets with automatic server management via syft-serve
 Author-email: Your Name <your.email@example.com>
 Requires-Python: >=3.9

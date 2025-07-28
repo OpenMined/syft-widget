@@ -49,18 +49,26 @@ class DynamicWidget:
     """
     
     def __init__(self, 
-                 widget_title: str,
+                 widget_title: Optional[str] = None,
                  server_name: Optional[str] = None,
                  start_infra: bool = True,
                  verbose: bool = False,
                  width: str = "100%",
-                 height: int = 300,
+                 height: str = "60px",
                  update_interval: int = 1000,
                  debug: bool = False,
                  # Server management parameters
                  dependencies: Optional[List[str]] = None,
                  force_new_server: bool = False,
                  expiration_seconds: int = 86400):  # 24 hours default
+        # Generate widget_title from class name if not provided
+        if widget_title is None:
+            # Convert class name from CamelCase to snake_case
+            class_name = self.__class__.__name__
+            # Convert CamelCase to snake_case
+            import re
+            widget_title = re.sub('([a-z0-9])([A-Z])', r'\1_\2', class_name).lower()
+        
         self.widget_title = widget_title
         self._start_infra = start_infra
         self._verbose = verbose
@@ -616,7 +624,7 @@ window.addEventListener('DOMContentLoaded', function() {{
             id="{self._id}-iframe"
             src="data:text/html;base64,{iframe_base64}" 
             width="{self.width}" 
-            height="{self.height}px" 
+            height="{self.height}" 
             frameborder="0" 
             style="border:none;border-radius:8px;">
         </iframe>
