@@ -1,6 +1,6 @@
 # syft-widget
 
-Build resilient widgets for private, distributed systems.
+Build resilient jupyter widgets for viewing syft's private, distributed filesystem
 
 ## What is syft-widget?
 
