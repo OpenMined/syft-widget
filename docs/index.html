@@ -17,7 +17,7 @@
                     <a href="index.html" class="logo">syft-widget</a>
                 </div>
                 <div class="nav-links">
-                    <a href="https://colab.research.google.com/github/OpenMined/syft-widget/blob/main/tutorial.ipynb" target="_blank">Try in Jupyter</a>
+                    <a href="https://colab.research.google.com/github/OpenMined/syft-widget/blob/main/tutorial.ipynb" target="_blank">Try in Colab</a>
                     <a href="api/index.html">API</a>
                     <a href="https://github.com/OpenMined/syft-widget" class="github-link">GitHub</a>
                 </div>
@@ -103,7 +103,7 @@ clock</code></pre>
     <section class="video-demo">
         <div class="container">
             <h2>See It In Action</h2>
-            <p class="section-subtitle">private, distributed state can be effortless</p>
+            <p class="section-subtitle">with file-backed widgets — private, distributed state can be effortless</p>
             
             <style>
                 .demo-tabs {
@@ -256,26 +256,39 @@ clock</code></pre>
         <section class="under-the-hood">
             <div class="container">
                 <h2>Under the Hood</h2>
-                <p class="section-subtitle">file-backed widgets made effortless</p>
+                <p class="section-subtitle">file-backed widgets for distributed systems</p>
                 
                 <div class="code-showcase">
-                    <pre><code class="language-python"># The Problem: Jupyter's widget architecture wasn't built for files
-# - Python ↔ JavaScript bridge is fragile and stateful
-# - File watching requires polling or OS-specific APIs
-# - Kernel restarts break everything
-# - Multi-user scenarios are a nightmare
+                    <pre><code class="language-python"># 🚀 Instant Load + Live Updates:
+#
+#  t=0ms: Python renders template with checkpoint data
+#  ┌─────────────────┐         ┌──────────────────┐
+#  │ Widget.__init__ │────────►│ {time} → "14:30" │ (instant!)
+#  └─────────────────┘         └──────────────────┘
+#           │                           │
+#           ▼                           ▼
+#  t=50ms: Spawn server        ┌──────────────────┐
+#  ┌─────────────────┐         │  iframe renders  │
+#  │ FastAPI server  │         │   HTML + CSS     │
+#  │  watches files  │         └──────────────────┘
+#  └─────────────────┘                  │
+#           │                           ▼
+#           ▼                  ┌──────────────────┐
+#  t=100ms: Server ready       │ JS finds server  │
+#  ┌─────────────────┐         │ via port scan    │
+#  │ /api/time →     │◄────────┤ (8000-8010)      │
+#  │ {"time":"14:31"}│         └──────────────────┘
+#  └─────────────────┘                  │
+#           ▲                           ▼
+#           │                  ┌──────────────────┐
+#    Files change              │ Live updates via │
+#    FSEvents/inotify          │ data-field="time"│
+#           │                  └──────────────────┘
+#           │                           ▲
+#           └───────────────────────────┘
 
-# Our Solution: Local HTTP servers + iframes
-# ✓ Each widget spawns a lightweight FastAPI server
-# ✓ Servers watch files with native OS events (inotify/FSEvents)
-# ✓ WebSockets push changes instantly to the browser
-# ✓ Iframes isolate from Jupyter's complex DOM/state
-# ✓ Servers persist across kernel restarts
-# ✓ Multiple users can connect to the same widget
-
-# The Result: It just works™
-widget = YourFileBackedWidget()  # Spawns server, renders iframe
-widget  # Shows live file state, updates automatically</code></pre>
+# The magic: Users see content instantly, servers persist across reloads
+widget = YourWidget()  # Instant display, then live updates</code></pre>
                 </div>
             </div>
         </section>
@@ -305,66 +318,77 @@ widget  # Shows live file state, updates automatically</code></pre>
                 
                 <div class="api-examples">
                     <div class="api-example">
-                        <h3>Create & Customize</h3>
+                        <h3>Create widgets ready to manage private, distributed state</h3>
                         <pre><code class="language-python">import syft_widget as sw
 
-# Basic usage
-widget = sw.serve("my_widget", button_widget)
+class MyWidget(sw.DynamicWidget):
+    def get_endpoints(self):
+        @self.endpoint("/api/data")
+        def get_data():
+            return {"value": read_file()}
+    
+    def get_template(self):
+        return '''&lt;div data-field="value"&gt;{value}&lt;/div&gt;'''
 
-# Full control
-widget = sw.DynamicWidget(
-    package_name="my_widget",
-    widget_name="Dashboard",
-    auto_discover=True,
-    port=8080,
-    debug=True,               # Enable logging
-    force=True                # Replace existing
+# Create with options
+widget = MyWidget(
+    server_name="my_server",    # Optional name
+    height="200px",             # Widget height
+    update_interval=1000,       # Refresh rate (ms)
+    expiration_seconds=3600     # Auto-cleanup
 )</code></pre>
                     </div>
                     
                     <div class="api-example">
-                        <h3>Server Management</h3>
-                        <pre><code class="language-python"># List all servers
-widgets = sw.list()
+                        <h3>Server Access via syft-serve</h3>
+                        <pre><code class="language-python">import syft_serve as ss
 
-# Get specific widget
-widget = sw.get("my_widget")
+# List all servers
+ss.servers
 
-# Access widget properties
-widget.url          # http://localhost:8080
-widget.endpoints    # ["/widget", "/state"]
-widget.status       # "running"
-widget.uptime       # "2h 15m"</code></pre>
+# Access specific server
+server = ss.servers['my_server']
+
+# Server properties
+server.status      # "running"
+server.url         # http://localhost:8001
+server.uptime      # "2h 15m"
+server.endpoints   # ["/api/data"]
+
+# Control servers
+server.terminate()
+ss.servers.terminate_all()</code></pre>
                     </div>
                     
                     <div class="api-example">
                         <h3>Logs & Debugging</h3>
-                        <pre><code class="language-python"># Stream logs in real-time
-widget.stdout.follow()
+                        <pre><code class="language-python"># Via widget's server property
+widget.server.stdout.tail(20)
+widget.server.stderr.tail(20)
 
-# Get recent logs
-widget.stdout.tail(20)
-widget.stderr.tail(20)
+# Stream logs in real-time
+widget.server.stdout.follow()
 
-# Check environment
-widget.env.packages    # Installed packages
-widget.env.python      # Python version</code></pre>
+# Access underlying server
+widget.server  # syft-serve server object</code></pre>
                     </div>
                     
                     <div class="api-example">
-                        <h3>Lifecycle Control</h3>
-                        <pre><code class="language-python"># Graceful shutdown
-widget.terminate()
+                        <h3>Advanced Features</h3>
+                        <pre><code class="language-python"># Widget with dependencies
+widget = MyWidget(
+    dependencies=['pandas', 'numpy'],
+    force_new_server=True
+)
 
-# Force kill if needed
-widget.force_terminate()
+# Widget properties
+widget.server_name     # Server identifier
+widget.update_interval # Refresh rate
+widget.server         # Access underlying server
 
-# Clean up all widgets
-sw.terminate_all()
-
-# Auto-expiring widgets
-sw.serve("temp_widget", widget_obj, 
-         expiration_seconds=300)  # 5 min</code></pre>
+# Force restart if needed
+widget._restart_server()
+widget._stop_server()</code></pre>
                     </div>
                 </div>
             </div>

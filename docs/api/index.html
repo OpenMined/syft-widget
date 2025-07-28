@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Reference - syft-serve</title>
+    <title>API Reference - syft-widget</title>
     <link rel="icon" type="image/svg+xml" href="../images/syftbox-logo.svg">
     <link rel="stylesheet" href="../css/style.css">
     <style>
@@ -242,13 +242,13 @@
             <div class="nav-wrapper">
                 <div class="logo-group">
                     <img src="../images/syftbox-logo.svg" alt="SyftBox" class="syftbox-logo">
-                    <a href="../index.html" class="logo">syft-serve</a>
+                    <a href="../index.html" class="logo">syft-widget</a>
                 </div>
                 <div class="nav-links">
                     <a href="../index.html">Home</a>
-                    <a href="https://colab.research.google.com/github/OpenMined/syft-serve/blob/main/tutorial.ipynb" target="_blank">Try in Colab</a>
+                    <a href="https://colab.research.google.com/github/OpenMined/syft-widget/blob/main/tutorial.ipynb" target="_blank">Try in Colab</a>
                     <a href="index.html" class="active">API</a>
-                    <a href="https://github.com/OpenMined/syft-serve" class="github-link">GitHub</a>
+                    <a href="https://github.com/OpenMined/syft-widget" class="github-link">GitHub</a>
                 </div>
             </div>
         </nav>
@@ -258,7 +258,7 @@
     <section class="api-hero">
         <div class="container">
             <h1>API Reference</h1>
-            <p class="hero-subtitle">A simple Python API for self-hosting stateless servers</p>
+            <p class="hero-subtitle">Build resilient widgets for private, distributed systems</p>
         </div>
     </section>
 
@@ -271,35 +271,35 @@
                     <h3>Quick Navigation</h3>
                     <ul>
                         <li>
-                            <a href="#server-creation">Server Creation</a>
+                            <a href="#dynamic-widget">DynamicWidget Class</a>
                             <ul class="nav-submenu">
-                                <li><a href="#create">ss.create()</a></li>
+                                <li><a href="#init">__init__()</a></li>
+                                <li><a href="#get-endpoints">get_endpoints()</a></li>
+                                <li><a href="#get-template">get_template()</a></li>
+                                <li><a href="#endpoint">@endpoint decorator</a></li>
                             </ul>
                         </li>
                         <li>
-                            <a href="#server-management">Server Management</a>
+                            <a href="#widget-properties">Widget Properties</a>
                             <ul class="nav-submenu">
-                                <li><a href="#list">ss.list()</a></li>
-                                <li><a href="#get">ss.get()</a></li>
-                                <li><a href="#server-display">Server Display</a></li>
+                                <li><a href="#server">widget.server</a></li>
+                                <li><a href="#server-name">widget.server_name</a></li>
+                                <li><a href="#update-interval">widget.update_interval</a></li>
                             </ul>
                         </li>
                         <li>
-                            <a href="#logging-debugging">Logging & Debugging</a>
+                            <a href="#styling">Styling & Themes</a>
                             <ul class="nav-submenu">
-                                <li><a href="#stdout-tail">server.stdout.tail()</a></li>
-                                <li><a href="#stdout-follow">server.stdout.follow()</a></li>
-                                <li><a href="#stderr-tail">server.stderr.tail()</a></li>
-                                <li><a href="#stderr-follow">server.stderr.follow()</a></li>
-                                <li><a href="#server-env">server.env</a></li>
+                                <li><a href="#get-widget-styles">_get_widget_styles()</a></li>
+                                <li><a href="#get-css-light">_get_css_light()</a></li>
+                                <li><a href="#get-css-dark">_get_css_dark()</a></li>
                             </ul>
                         </li>
                         <li>
-                            <a href="#lifecycle-control">Lifecycle Control</a>
+                            <a href="#server-integration">Server Integration</a>
                             <ul class="nav-submenu">
-                                <li><a href="#terminate">server.terminate()</a></li>
-                                <li><a href="#terminate-all">ss.terminate_all()</a></li>
-                                <li><a href="#auto-expiring">Auto-Expiring Servers</a></li>
+                                <li><a href="#server-logs">Accessing Logs</a></li>
+                                <li><a href="#server-control">Server Control</a></li>
                             </ul>
                         </li>
                     </ul>
@@ -307,15 +307,45 @@
 
                 <!-- Main Content -->
                 <div class="api-main">
-                    <!-- Server Creation -->
-                    <section id="server-creation">
-                        <h2>Server Creation</h2>
+                    <!-- DynamicWidget Class -->
+                    <section id="dynamic-widget">
+                        <h2>DynamicWidget Class</h2>
                         
-                        <div class="api-method" id="create">
-                            <div class="method-signature">ss.create()</div>
+                        <div class="api-method" id="class-overview">
+                            <div class="method-signature">class sw.DynamicWidget</div>
                             <p class="method-description">
-                                Create a new server from a dictionary of endpoints. This is the primary method for turning
-                                Python functions into HTTP endpoints with automatic process management.
+                                The main class for creating file-backed widgets that automatically update in real-time.
+                                Widgets spawn local HTTP servers that watch files and serve live updates to the browser.
+                            </p>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Basic Example</div>
+                                <pre><code class="language-python">import syft_widget as sw
+
+class MyWidget(sw.DynamicWidget):
+    def get_endpoints(self):
+        @self.endpoint("/api/data")
+        def get_data():
+            return {"value": "Hello World", "time": time.time()}
+    
+    def get_template(self):
+        return '''
+        &lt;div&gt;
+            &lt;h1&gt;{value}&lt;/h1&gt;
+            &lt;span data-field="time"&gt;{time}&lt;/span&gt;
+        &lt;/div&gt;
+        '''
+
+widget = MyWidget()
+widget  # Display in Jupyter</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="api-method" id="init">
+                            <div class="method-signature">__init__(widget_title=None, server_name=None, ...)</div>
+                            <p class="method-description">
+                                Initialize a new DynamicWidget instance. Creates the widget configuration and optionally
+                                starts a backend server to handle live updates.
                             </p>
                             
                             <div class="params-section">
@@ -323,34 +353,83 @@
                                 <table class="param-table">
                                     <tbody>
                                         <tr>
-                                            <td><span class="param-name">name</span></td>
-                                            <td><span class="param-type">str</span></td>
-                                            <td><span class="param-desc">Unique name for the server</span></td>
+                                            <td><span class="param-name">widget_title</span></td>
+                                            <td><span class="param-type">str, optional</span></td>
+                                            <td><span class="param-desc">Title for the widget (defaults to class name)</span></td>
                                         </tr>
                                         <tr>
-                                            <td><span class="param-name">endpoints</span></td>
-                                            <td><span class="param-type">dict[str, Callable]</span></td>
-                                            <td><span class="param-desc">Dictionary mapping URL paths to Python functions</span></td>
+                                            <td><span class="param-name">server_name</span></td>
+                                            <td><span class="param-type">str, optional</span></td>
+                                            <td><span class="param-desc">Unique server identifier (derived from title if not provided)</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">start_infra</span></td>
+                                            <td><span class="param-type">bool</span></td>
+                                            <td><span class="param-desc">Whether to start the server automatically (default: True)</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">width</span></td>
+                                            <td><span class="param-type">str</span></td>
+                                            <td><span class="param-desc">Widget width CSS value (default: "100%")</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">height</span></td>
+                                            <td><span class="param-type">str</span></td>
+                                            <td><span class="param-desc">Widget height CSS value (default: "60px")</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="param-name">update_interval</span></td>
+                                            <td><span class="param-type">int</span></td>
+                                            <td><span class="param-desc">Milliseconds between updates (default: 1000)</span></td>
                                         </tr>
                                         <tr>
                                             <td><span class="param-name">dependencies</span></td>
-                                            <td><span class="param-type">list[str]</span></td>
-                                            <td><span class="param-desc">Optional list of pip packages to install</span></td>
+                                            <td><span class="param-type">list[str], optional</span></td>
+                                            <td><span class="param-desc">Python packages to install in server environment</span></td>
                                         </tr>
                                         <tr>
-                                            <td><span class="param-name">port</span></td>
-                                            <td><span class="param-type">int</span></td>
-                                            <td><span class="param-desc">Optional specific port (default: auto-assign)</span></td>
+                                            <td><span class="param-name">force_new_server</span></td>
+                                            <td><span class="param-type">bool</span></td>
+                                            <td><span class="param-desc">Replace existing server with same name (default: False)</span></td>
                                         </tr>
                                         <tr>
                                             <td><span class="param-name">expiration_seconds</span></td>
                                             <td><span class="param-type">int</span></td>
-                                            <td><span class="param-desc">Auto-cleanup after N seconds (default: 86400, -1 = never)</span></td>
+                                            <td><span class="param-desc">Server auto-cleanup time (default: 86400 = 24 hours)</span></td>
                                         </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Example</div>
+                                <pre><code class="language-python"># Basic widget
+widget = MyWidget()
+
+# Custom configuration
+widget = MyWidget(
+    widget_title="Dashboard",
+    height="400px",
+    update_interval=500,  # Update every 500ms
+    dependencies=["pandas", "numpy"],
+    expiration_seconds=3600  # Clean up after 1 hour
+)</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="api-method" id="get-endpoints">
+                            <div class="method-signature">get_endpoints(self)</div>
+                            <p class="method-description">
+                                Define the API endpoints for your widget. Use the @self.endpoint decorator to register
+                                functions that will be called to fetch data. This method must be overridden in subclasses.
+                            </p>
+                            
+                            <div class="params-section">
+                                <div class="section-title">Parameters</div>
+                                <table class="param-table">
+                                    <tbody>
                                         <tr>
-                                            <td><span class="param-name">force</span></td>
-                                            <td><span class="param-type">bool</span></td>
-                                            <td><span class="param-desc">Replace existing server with same name (default: False)</span></td>
+                                            <td colspan="2"><em>No parameters</em></td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -361,530 +440,310 @@
                                 <table class="param-table">
                                     <tbody>
                                         <tr>
-                                            <td><span class="param-type">Server</span></td>
-                                            <td><span class="param-desc">Server object with url, status, logs, and control methods</span></td>
+                                            <td colspan="2"><em>None (registers endpoints via decorator)</em></td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Example</div>
+                                <pre><code class="language-python">def get_endpoints(self):
+    @self.endpoint("/api/status")
+    def get_status():
+        return {"status": "running", "uptime": 3600}
+    
+    @self.endpoint("/api/data")
+    def get_data():
+        # Read from files, databases, etc.
+        with open("data.json") as f:
+            return json.load(f)</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="api-method" id="get-template">
+                            <div class="method-signature">get_template(self)</div>
+                            <p class="method-description">
+                                Return the HTML template for your widget. Use {variable} placeholders for initial render
+                                and data-field="variable" attributes on elements for live updates.
+                            </p>
+                            
+                            <div class="params-section">
+                                <div class="section-title">Parameters</div>
+                                <table class="param-table">
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="2"><em>No parameters</em></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="returns-section">
+                                <div class="section-title">Returns</div>
+                                <table class="param-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-type">str</span></td>
+                                            <td><span class="param-desc">HTML template string with placeholders</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Example</div>
+                                <pre><code class="language-python">def get_template(self):
+    return '''
+    &lt;div class="widget-container"&gt;
+        &lt;h2&gt;System Status&lt;/h2&gt;
+        &lt;div&gt;CPU: &lt;span data-field="cpu"&gt;{cpu}&lt;/span&gt;%&lt;/div&gt;
+        &lt;div&gt;Memory: &lt;span data-field="memory"&gt;{memory}&lt;/span&gt;%&lt;/div&gt;
+        &lt;div&gt;Updated: &lt;span data-field="timestamp"&gt;{timestamp}&lt;/span&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    '''</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="api-method" id="endpoint">
+                            <div class="method-signature">@self.endpoint(path)</div>
+                            <p class="method-description">
+                                Decorator to register an endpoint function. Must be used inside get_endpoints().
+                                The decorated function should return a dictionary of data.
+                            </p>
+                            
+                            <div class="params-section">
+                                <div class="section-title">Parameters</div>
+                                <table class="param-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-name">path</span></td>
+                                            <td><span class="param-type">str</span></td>
+                                            <td><span class="param-desc">URL path for the endpoint (e.g., "/api/data")</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Example</div>
+                                <pre><code class="language-python">def get_endpoints(self):
+    @self.endpoint("/api/metrics")
+    def get_metrics():
+        # This function will be called every update_interval
+        return {
+            "users": count_users(),
+            "requests": get_request_count(),
+            "errors": check_errors()
+        }</code></pre>
+                            </div>
+                        </div>
+                        
+                    </section>
+
+                    <!-- Widget Properties -->
+                    <section id="widget-properties">
+                        <h2>Widget Properties</h2>
+                        
+                        <div class="api-method" id="server">
+                            <div class="method-signature">widget.server</div>
+                            <p class="method-description">
+                                Access the underlying syft-serve server object. This provides access to server
+                                status, logs, and control methods.
+                            </p>
+                            
+                            <div class="returns-section">
+                                <div class="section-title">Returns</div>
+                                <table class="param-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-type">Server or None</span></td>
+                                            <td><span class="param-desc">The syft-serve server handle if available</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Example</div>
+                                <pre><code class="language-python"># Access server logs
+if widget.server:
+    print(widget.server.stdout.tail(20))
+    print(f"Status: {widget.server.status}")
+    print(f"URL: {widget.server.url}")</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="api-method" id="server-name">
+                            <div class="method-signature">widget.server_name</div>
+                            <p class="method-description">
+                                The unique identifier for this widget's server. Used to reuse servers across
+                                widget recreations.
+                            </p>
+                            
+                            <div class="returns-section">
+                                <div class="section-title">Returns</div>
+                                <table class="param-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-type">str</span></td>
+                                            <td><span class="param-desc">Server name identifier</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="api-method" id="update-interval">
+                            <div class="method-signature">widget.update_interval</div>
+                            <p class="method-description">
+                                The interval in milliseconds between automatic updates. Set during initialization.
+                            </p>
+                            
+                            <div class="returns-section">
+                                <div class="section-title">Returns</div>
+                                <table class="param-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-type">int</span></td>
+                                            <td><span class="param-desc">Update interval in milliseconds</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Styling & Themes -->
+                    <section id="styling">
+                        <h2>Styling & Themes</h2>
+                        
+                        <div class="api-method" id="get-widget-styles">
+                            <div class="method-signature">_get_widget_styles(self)</div>
+                            <p class="method-description">
+                                Override to provide custom CSS styles for your widget. These styles are applied
+                                to all themes.
+                            </p>
+                            
+                            <div class="returns-section">
+                                <div class="section-title">Returns</div>
+                                <table class="param-table">
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="param-type">str</span></td>
+                                            <td><span class="param-desc">CSS styles as a string</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Example</div>
+                                <pre><code class="language-python">def _get_widget_styles(self):
+    return """
+    .widget-container {
+        padding: 20px;
+        border-radius: 8px;
+        font-family: monospace;
+    }
+    .metric {
+        font-size: 24px;
+        font-weight: bold;
+    }
+    """</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="api-method" id="get-css-light">
+                            <div class="method-signature">_get_css_light(self)</div>
+                            <p class="method-description">
+                                Override to provide CSS styles specific to light theme.
+                            </p>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Example</div>
+                                <pre><code class="language-python">def _get_css_light(self):
+    return """
+    .widget-container {
+        background: #f0f0f0;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+    """</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="api-method" id="get-css-dark">
+                            <div class="method-signature">_get_css_dark(self)</div>
+                            <p class="method-description">
+                                Override to provide CSS styles specific to dark theme.
+                            </p>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Example</div>
+                                <pre><code class="language-python">def _get_css_dark(self):
+    return """
+    .widget-container {
+        background: #1e1e1e;
+        color: #e0e0e0;
+        border: 1px solid #444;
+    }
+    """</code></pre>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Server Integration -->
+                    <section id="server-integration">
+                        <h2>Server Integration</h2>
+                        
+                        <div class="api-method" id="server-logs">
+                            <div class="method-signature">Accessing Server Logs</div>
+                            <p class="method-description">
+                                Access logs through the widget's server property. Useful for debugging and monitoring.
+                            </p>
+                            
+                            <div class="example-section">
+                                <div class="section-title">Example</div>
+                                <pre><code class="language-python"># Get recent logs
+if widget.server:
+    # Last 20 lines of stdout
+    print(widget.server.stdout.tail(20))
+    
+    # Check for errors
+    errors = widget.server.stderr.tail(20)
+    if errors:
+        print("Errors found:", errors)
+    
+    # Follow logs in real-time
+    for line in widget.server.stdout.follow():
+        print(line)
+        if "error" in line.lower():
+            break</code></pre>
+                            </div>
+                        </div>
+                        
+                        <div class="api-method" id="server-control">
+                            <div class="method-signature">Server Control</div>
+                            <p class="method-description">
+                                Control the widget's server lifecycle through syft-serve integration.
+                            </p>
                             
                             <div class="example-section">
                                 <div class="section-title">Example</div>
                                 <pre><code class="language-python">import syft_serve as ss
 
-def predict(data: dict):
-    return {"prediction": "positive", "confidence": 0.95}
+# List all servers
+ss.servers
 
-# Create a server
-server = ss.create(
-    name="ml_api",
-    endpoints={"/predict": predict},
-    dependencies=["numpy", "scikit-learn"]
-)
+# Access specific widget's server
+server = ss.servers['my_widget_server']
 
-print(server.url)  # http://localhost:8000</code></pre>
-                            </div>
-                        </div>
-                        
-                    </section>
-
-                    <!-- Server Management -->
-                    <section id="server-management">
-                        <h2>Server Management</h2>
-                        
-                        <div class="api-method" id="list">
-                            <div class="method-signature">ss.list()</div>
-                            <p class="method-description">
-                                List all currently running servers. Returns a list of Server objects that you can
-                                inspect and control.
-                            </p>
-                            
-                            <div class="params-section">
-                                <div class="section-title">Parameters</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td colspan="2"><em>No parameters</em></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="returns-section">
-                                <div class="section-title">Returns</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td><span class="param-type">list[Server]</span></td>
-                                            <td><span class="param-desc">List of all active Server objects</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="example-section">
-                                <div class="section-title">Example</div>
-                                <pre><code class="language-python"># List all servers
-servers = ss.list()
-
-for server in servers:
-    print(f"{server.name}: {server.url} - {server.status}")</code></pre>
-                            </div>
-                        </div>
-                        
-                        <div class="api-method" id="get">
-                            <div class="method-signature">ss.get()</div>
-                            <p class="method-description">
-                                Get a specific server by name. Useful for retrieving a server created in a previous
-                                session or different notebook.
-                            </p>
-                            
-                            <div class="params-section">
-                                <div class="section-title">Parameters</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td><span class="param-name">name</span></td>
-                                            <td><span class="param-type">str</span></td>
-                                            <td><span class="param-desc">Name of the server to retrieve</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="returns-section">
-                                <div class="section-title">Returns</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td><span class="param-type">Server</span></td>
-                                            <td><span class="param-desc">Server object if found</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="example-section">
-                                <div class="section-title">Example</div>
-                                <pre><code class="language-python"># Get a specific server
-server = ss.get("ml_api")
-
-# Access server properties
-print(f"URL: {server.url}")
-print(f"Status: {server.status}")
-print(f"Uptime: {server.uptime}")</code></pre>
-                            </div>
-                        </div>
-                        
-                        <div class="api-method" id="server-display">
-                            <div class="method-signature">Server Display in Jupyter</div>
-                            <p class="method-description">
-                                Server objects have rich display representations in Jupyter notebooks that show
-                                status, logs, and control options at a glance.
-                            </p>
-                            
-                            <div class="example-section">
-                                <div class="section-title">Jupyter Notebook Display</div>
-                                <p style="margin-bottom: 1rem;">When you evaluate a server object in a Jupyter cell, you get an interactive display:</p>
-                                
-                                <div style="background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; padding: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin-bottom: 1rem;">
-                                    <h3 style="margin: 0 0 10px 0; color: #333;">🚀 hello_api</h3>
-                                    <table style="width: 100%; border-collapse: collapse;">
-                                        <tr>
-                                            <td style="padding: 5px 10px 5px 0; color: #666; vertical-align: top;">Status:</td>
-                                            <td style="padding: 5px 0; color: #27ae60; font-weight: bold;">✅ Running</td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 5px 10px 5px 0; color: #666; vertical-align: top;">URL:</td>
-                                            <td style="padding: 5px 0;"><a href="#" style="color: #3498db; text-decoration: none;">http://localhost:8000</a></td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 5px 10px 5px 0; color: #666; vertical-align: top;">Endpoints:</td>
-                                            <td style="padding: 5px 0; color: #333;"><ul style='margin: 0; padding-left: 20px;'><li><code>/hello</code></li><li><code>/status</code></li></ul></td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 5px 10px 5px 0; color: #666; vertical-align: top;">Uptime:</td>
-                                            <td style="padding: 5px 0; color: #333;">2h 15m</td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 5px 10px 5px 0; color: #666; vertical-align: top;">Expires In:</td>
-                                            <td style="padding: 5px 0; font-weight: bold; color: #f59e0b;">⏰ 21h 45m</td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 5px 10px 5px 0; color: #666; vertical-align: top;">PID:</td>
-                                            <td style="padding: 5px 0;"><code style="background: #f3f4f6; padding: 2px 4px; border-radius: 3px; color: #333;">12345</code></td>
-                                        </tr>
-                                    </table>
-                                    <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                        <div style="padding: 8px; background: #f8f9fa; border-radius: 3px; border: 1px solid #ddd;">
-                                            <div style="color: #666; font-size: 11px; margin-bottom: 5px;">Recent logs:</div>
-                                            <div style="font-size: 11px; color: #333;">
-                                                <span style='color: #374151; font-family: monospace;'>INFO: Started server process [12345]</span><br>
-                                                <span style='color: #374151; font-family: monospace;'>INFO: Uvicorn running on http://0.0.0.0:8000</span><br>
-                                                <span style='color: #374151; font-family: monospace;'>INFO: Application startup complete.</span>
-                                            </div>
-                                        </div>
-                                        <div style="padding: 8px; background: #fef2f2; border-radius: 3px; border: 1px solid #ddd;">
-                                            <div style="color: #666; font-size: 11px; margin-bottom: 5px;">Recent errors:</div>
-                                            <div style="font-size: 11px;">
-                                                <em style='color: #888;'>No recent errors</em>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 12px; color: #666;">
-                                        Try: <code style="background: #f3f4f6; padding: 2px 4px; border-radius: 3px;">server.stdout.tail(20)</code>, <code style="background: #f3f4f6; padding: 2px 4px; border-radius: 3px;">server.stderr.tail(20)</code>, <code style="background: #f3f4f6; padding: 2px 4px; border-radius: 3px;">server.env</code>, <code style="background: #f3f4f6; padding: 2px 4px; border-radius: 3px;">server.terminate()</code>
-                                    </div>
-                                </div>
-                                
-                                <pre><code class="language-python"># In Jupyter, just evaluate the server object
-server
-
-# Or get multiple servers
-servers = ss.list()
-servers  # Shows a list with each server's display</code></pre>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Logging & Debugging -->
-                    <section id="logging-debugging">
-                        <h2>Logging & Debugging</h2>
-                        
-                        <div class="api-method" id="stdout-tail">
-                            <div class="method-signature">server.stdout.tail()</div>
-                            <p class="method-description">
-                                Get the most recent lines from the server's standard output logs. Useful for debugging
-                                and monitoring server activity.
-                            </p>
-                            
-                            <div class="params-section">
-                                <div class="section-title">Parameters</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td><span class="param-name">n</span></td>
-                                            <td><span class="param-type">int</span></td>
-                                            <td><span class="param-desc">Number of lines to return (default: 10)</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="returns-section">
-                                <div class="section-title">Returns</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td><span class="param-type">str</span></td>
-                                            <td><span class="param-desc">Last n lines from stdout</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="example-section">
-                                <div class="section-title">Example</div>
-                                <pre><code class="language-python"># Get recent logs
-logs = server.stdout.tail(20)
-print(logs)
-
-# Check for errors
-errors = server.stderr.tail(20)</code></pre>
-                            </div>
-                        </div>
-                        
-                        <div class="api-method" id="stdout-follow">
-                            <div class="method-signature">server.stdout.follow()</div>
-                            <p class="method-description">
-                                Stream logs in real-time as they are generated. This creates a continuous output
-                                that follows the log file, similar to `tail -f`.
-                            </p>
-                            
-                            <div class="params-section">
-                                <div class="section-title">Parameters</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td colspan="2"><em>No parameters</em></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="returns-section">
-                                <div class="section-title">Returns</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td><span class="param-type">Generator</span></td>
-                                            <td><span class="param-desc">Yields log lines as they appear</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="example-section">
-                                <div class="section-title">Example</div>
-                                <pre><code class="language-python"># Follow logs in real-time
-for line in server.stdout.follow():
-    print(line)
-    if "error" in line.lower():
-        break</code></pre>
-                            </div>
-                        </div>
-                        
-                        <div class="api-method" id="stderr-tail">
-                            <div class="method-signature">server.stderr.tail()</div>
-                            <p class="method-description">
-                                Get the most recent lines from the server's standard error logs. Useful for debugging
-                                errors and tracking warnings.
-                            </p>
-                            
-                            <div class="params-section">
-                                <div class="section-title">Parameters</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td><span class="param-name">n</span></td>
-                                            <td><span class="param-type">int</span></td>
-                                            <td><span class="param-desc">Number of lines to return (default: 10)</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="returns-section">
-                                <div class="section-title">Returns</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td><span class="param-type">str</span></td>
-                                            <td><span class="param-desc">Last n lines from stderr</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="example-section">
-                                <div class="section-title">Example</div>
-                                <pre><code class="language-python"># Check for errors
-errors = server.stderr.tail(20)
-if errors:
-    print("Recent errors:", errors)</code></pre>
-                            </div>
-                        </div>
-                        
-                        <div class="api-method" id="stderr-follow">
-                            <div class="method-signature">server.stderr.follow()</div>
-                            <p class="method-description">
-                                Stream error logs in real-time as they are generated. Perfect for monitoring
-                                errors and warnings as they occur.
-                            </p>
-                            
-                            <div class="params-section">
-                                <div class="section-title">Parameters</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td colspan="2"><em>No parameters</em></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="returns-section">
-                                <div class="section-title">Returns</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td><span class="param-type">Generator</span></td>
-                                            <td><span class="param-desc">Yields error log lines as they appear</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="example-section">
-                                <div class="section-title">Example</div>
-                                <pre><code class="language-python"># Monitor errors in real-time
-for error in server.stderr.follow():
-    print(f"ERROR: {error}")
-    # Send alert or take action</code></pre>
-                            </div>
-                        </div>
-                        
-                        <div class="api-method" id="server-env">
-                            <div class="method-signature">server.env</div>
-                            <p class="method-description">
-                                Access the server's environment information including Python version, installed packages,
-                                and environment variables.
-                            </p>
-                            
-                            <div class="params-section">
-                                <div class="section-title">Properties</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td><span class="param-name">python</span></td>
-                                            <td><span class="param-type">str</span></td>
-                                            <td><span class="param-desc">Python version used by the server</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td><span class="param-name">packages</span></td>
-                                            <td><span class="param-type">list[str]</span></td>
-                                            <td><span class="param-desc">List of installed packages with versions</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td><span class="param-name">variables</span></td>
-                                            <td><span class="param-type">dict</span></td>
-                                            <td><span class="param-desc">Environment variables</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="example-section">
-                                <div class="section-title">Example</div>
-                                <pre><code class="language-python"># Check server environment
-print(f"Python: {server.env.python}")
-print(f"Packages: {len(server.env.packages)}")
-
-# Find specific package
-for pkg in server.env.packages:
-    if "numpy" in pkg:
-        print(pkg)</code></pre>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Lifecycle Control -->
-                    <section id="lifecycle-control">
-                        <h2>Lifecycle Control</h2>
-                        
-                        <div class="api-method" id="terminate">
-                            <div class="method-signature">server.terminate()</div>
-                            <p class="method-description">
-                                Gracefully terminate a server. This stops the server process, cleans up resources,
-                                and removes it from the active servers list.
-                            </p>
-                            
-                            <div class="params-section">
-                                <div class="section-title">Parameters</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td><span class="param-name">timeout</span></td>
-                                            <td><span class="param-type">float</span></td>
-                                            <td><span class="param-desc">Maximum seconds to wait for graceful shutdown (default: 5.0)</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="returns-section">
-                                <div class="section-title">Returns</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td><span class="param-type">None</span></td>
-                                            <td><span class="param-desc">Server is terminated and cleaned up</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="example-section">
-                                <div class="section-title">Example</div>
-                                <pre><code class="language-python"># Terminate a specific server
-server = ss.get("ml_api")
+# Terminate the server
 server.terminate()
 
-# Or with custom timeout
-server.terminate(timeout=10.0)</code></pre>
-                            </div>
-                        </div>
-                        
-                        <div class="api-method" id="terminate-all">
-                            <div class="method-signature">ss.terminate_all()</div>
-                            <p class="method-description">
-                                Terminate all running servers at once. This is useful for cleanup in notebooks
-                                or when shutting down a development environment.
-                            </p>
-                            
-                            <div class="params-section">
-                                <div class="section-title">Parameters</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td><span class="param-name">force</span></td>
-                                            <td><span class="param-type">bool</span></td>
-                                            <td><span class="param-desc">Use force termination if graceful shutdown fails (default: True)</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="returns-section">
-                                <div class="section-title">Returns</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td><span class="param-type">dict</span></td>
-                                            <td><span class="param-desc">Summary of termination results</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="example-section">
-                                <div class="section-title">Example</div>
-                                <pre><code class="language-python"># Clean up all servers
-results = ss.terminate_all()
-
-print(f"Terminated {results['tracked_terminated']} servers")
-if results['orphaned_discovered'] > 0:
-    print(f"Also found and terminated {results['orphaned_terminated']} orphaned processes")</code></pre>
-                            </div>
-                        </div>
-                        
-                        <div class="api-method" id="auto-expiring">
-                            <div class="method-signature">Auto-Expiring Servers</div>
-                            <p class="method-description">
-                                Servers can be configured to automatically terminate after a specified time period.
-                                This prevents resource leaks and is perfect for temporary endpoints.
-                            </p>
-                            
-                            <div class="params-section">
-                                <div class="section-title">Configuration</div>
-                                <table class="param-table">
-                                    <tbody>
-                                        <tr>
-                                            <td><span class="param-name">expiration_seconds</span></td>
-                                            <td><span class="param-type">int</span></td>
-                                            <td><span class="param-desc">Seconds until auto-termination (default: 86400 = 24 hours, -1 = never expire)</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="example-section">
-                                <div class="section-title">Example</div>
-                                <pre><code class="language-python"># Create a temporary server (5 minutes)
-temp_server = ss.create(
-    name="temp_endpoint",
-    endpoints={"/process": process_data},
-    expiration_seconds=300
-)
-
-# Create a permanent server
-permanent_server = ss.create(
-    name="always_on",
-    endpoints={"/health": lambda: "OK"},
-    expiration_seconds=-1
-)
-
-# Check time remaining
-print(f"Expires in: {temp_server.expiration_info}")</code></pre>
+# Or terminate all servers
+ss.servers.terminate_all()</code></pre>
                             </div>
                         </div>
                     </section>
